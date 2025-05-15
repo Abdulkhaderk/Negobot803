@@ -38,8 +38,7 @@ const MOCK_USERS: User[] = [
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-
+  
   useEffect(() => {
     // Check for stored user on initial load
     const storedUser = localStorage.getItem('currentUser');
@@ -66,13 +65,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Store user in state and localStorage
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
-      
-      // Redirect based on role
-      if (user.role === 'seller') {
-        navigate('/dashboard');
-      } else {
-        navigate('/products');
-      }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -104,13 +96,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Store user in state and localStorage
       setCurrentUser(newUser);
       localStorage.setItem('currentUser', JSON.stringify(newUser));
-      
-      // Redirect based on role
-      if (role === 'seller') {
-        navigate('/dashboard');
-      } else {
-        navigate('/products');
-      }
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -122,7 +107,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
-    navigate('/login');
   };
 
   return (

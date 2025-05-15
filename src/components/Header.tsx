@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,14 @@ import { ShoppingCart, User } from 'lucide-react';
 const Header = () => {
   const { currentUser, logout } = useAuth();
   const { cart } = useProducts();
+  const navigate = useNavigate();
   
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
   
   return (
     <header className="bg-white border-b sticky top-0 z-50">
@@ -68,7 +74,7 @@ const Header = () => {
                     </div>
                     <div className="p-2">
                       <button 
-                        onClick={logout}
+                        onClick={handleLogout}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
                       >
                         Logout

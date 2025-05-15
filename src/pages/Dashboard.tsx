@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
+import { useProducts } from '@/contexts/ProductContext';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+  const { products } = useProducts();
   const navigate = useNavigate();
   
   // Redirect customer users
@@ -18,19 +20,8 @@ const Dashboard = () => {
     }
   }, [currentUser, navigate]);
   
-  // Mock data for dashboard
-  const salesData = {
-    today: 1250,
-    week: 8450,
-    month: 32500,
-    pendingOrders: 5,
-    completedOrders: 28,
-    negotiationData: [
-      { product: 'Premium Business Laptop', avgDiscount: 15, successRate: 72 },
-      { product: 'Professional Office Chair', avgDiscount: 12, successRate: 85 },
-      { product: 'Smart Conference System', avgDiscount: 8, successRate: 92 }
-    ]
-  };
+  // Actual product count
+  const productCount = products.length;
   
   if (!currentUser || currentUser.role !== 'seller') {
     return null; // Will redirect in useEffect
@@ -51,136 +42,95 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Today's Sales</CardTitle>
-              <CardDescription>Total sales for today</CardDescription>
+              <CardTitle className="text-lg font-medium">Products</CardTitle>
+              <CardDescription>Total active products</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${salesData.today.toFixed(2)}</div>
+              <div className="text-2xl font-bold">{productCount}</div>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Weekly Sales</CardTitle>
-              <CardDescription>Last 7 days</CardDescription>
+              <CardTitle className="text-lg font-medium">Bot Status</CardTitle>
+              <CardDescription>Negotiation assistant</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${salesData.week.toFixed(2)}</div>
+              <div className="text-2xl font-bold flex items-center">
+                <span className="h-3 w-3 rounded-full bg-green-500 mr-2"></span>
+                Active
+              </div>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Pending Orders</CardTitle>
-              <CardDescription>Orders waiting to be processed</CardDescription>
+              <CardTitle className="text-lg font-medium">Settings</CardTitle>
+              <CardDescription>System configuration</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{salesData.pendingOrders}</div>
+              <Button onClick={() => navigate('/manage-products')} variant="outline" size="sm">
+                Manage Products
+              </Button>
             </CardContent>
           </Card>
         </div>
         
-        <Tabs defaultValue="negotiations" className="mb-8">
+        <Tabs defaultValue="orders" className="mb-8">
           <TabsList>
-            <TabsTrigger value="negotiations">Negotiation Analytics</TabsTrigger>
             <TabsTrigger value="orders">Recent Orders</TabsTrigger>
+            <TabsTrigger value="settings">Bot Settings</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="negotiations">
+          <TabsContent value="orders">
             <Card>
               <CardHeader>
-                <CardTitle>Product Negotiation Performance</CardTitle>
+                <CardTitle>Orders</CardTitle>
                 <CardDescription>
-                  Analytics on how your products are performing in negotiations
+                  Manage your recent orders
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4">Product</th>
-                        <th className="text-left py-3 px-4">Avg. Discount</th>
-                        <th className="text-left py-3 px-4">Success Rate</th>
-                        <th className="text-left py-3 px-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {salesData.negotiationData.map((item, idx) => (
-                        <tr key={idx} className="border-b">
-                          <td className="py-3 px-4">{item.product}</td>
-                          <td className="py-3 px-4">{item.avgDiscount}%</td>
-                          <td className="py-3 px-4">{item.successRate}%</td>
-                          <td className="py-3 px-4">
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No orders to display yet.</p>
+                  <p className="text-sm text-gray-500 mt-1">When customers place orders, they'll appear here.</p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="orders">
+          <TabsContent value="settings">
             <Card>
               <CardHeader>
-                <CardTitle>Recent Orders</CardTitle>
+                <CardTitle>Negotiation Bot Settings</CardTitle>
                 <CardDescription>
-                  Last 5 orders received
+                  Configure how your AI negotiation assistant interacts with customers
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...Array(5)].map((_, idx) => (
-                    <div key={idx} className="border-b pb-4 last:border-0">
-                      <div className="flex justify-between">
-                        <div>
-                          <div className="font-medium">Order #{(idx + 1001).toString()}</div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(Date.now() - idx * 86400000).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="font-medium text-right">
-                            ${(Math.random() * 1000 + 200).toFixed(2)}
-                          </div>
-                          <div className={`text-sm ${
-                            idx % 3 === 0 ? 'text-amber-600' : 'text-green-600'
-                          } text-right`}>
-                            {idx % 3 === 0 ? 'Processing' : 'Completed'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  <div className="border-b pb-4">
+                    <h3 className="font-medium mb-1">Discount Limits</h3>
+                    <p className="text-sm text-gray-600">
+                      Your negotiation bot is currently configured to accept discounts up to 25% off the listed price.
+                    </p>
+                  </div>
+                  
+                  <div className="border-b pb-4">
+                    <h3 className="font-medium mb-1">Wholesale Pricing</h3>
+                    <p className="text-sm text-gray-600">
+                      Wholesale pricing is enabled for qualifying purchases. Configure minimum quantities and discount rates.
+                    </p>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <Button variant="outline">Edit Bot Settings</Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Negotiation Bot Settings</CardTitle>
-            <CardDescription>
-              Configure how your AI negotiation assistant interacts with customers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Your negotiation bot is currently configured to accept discounts up to 25% off the listed price.
-              Wholesale pricing is enabled for qualifying purchases.
-            </p>
-            <div className="flex space-x-4">
-              <Button variant="outline">Edit Bot Settings</Button>
-              <Button variant="outline">View Negotiation Logs</Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </>
   );
