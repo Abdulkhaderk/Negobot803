@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
+import { ArrowLeft } from 'lucide-react';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -17,6 +18,7 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,9 @@ const Signup = () => {
       await signup(name, email, password, role);
       toast({
         title: 'Account created',
-        description: `Welcome to NegotiBot! You've registered as a ${role}.`,
+        description: `Welcome to NEGO! You've registered as a ${role}.`,
       });
+      // Note: Navigation is now handled in the AuthContext
     } catch (error) {
       toast({
         title: 'Sign up failed',
@@ -42,6 +45,17 @@ const Signup = () => {
 
   return (
     <AuthLayout title="Create your account">
+      <div className="absolute top-4 left-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate('/login')}
+          className="flex items-center justify-center"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
+      
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         <div className="space-y-4">
           <div>

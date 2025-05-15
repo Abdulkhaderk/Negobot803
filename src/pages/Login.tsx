@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +15,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,8 +26,9 @@ const Login = () => {
       await login(email, password);
       toast({
         title: 'Successfully logged in',
-        description: 'Welcome back to NegotiBot!',
+        description: 'Welcome back to NEGO!',
       });
+      // Note: Navigation is now handled in the AuthContext
     } catch (error) {
       toast({
         title: 'Login failed',
@@ -40,6 +43,17 @@ const Login = () => {
 
   return (
     <AuthLayout title="Log in to your account">
+      <div className="absolute top-4 left-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate('/')}
+          className="flex items-center justify-center"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
+      
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         <div className="space-y-4">
           <div>

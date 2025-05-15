@@ -38,6 +38,7 @@ const MOCK_USERS: User[] = [
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Check for stored user on initial load
@@ -56,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Find user by email (in a real app, you'd validate the password too)
-      const user = MOCK_USERS.find(u => u.email === email);
+      const user = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
       
       if (!user) {
         throw new Error('Invalid credentials');
@@ -65,6 +66,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Store user in state and localStorage
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
+      
+      // After successful login, navigate based on role
+      if (user.role === 'seller') {
+        navigate('/dashboard');
+      } else {
+        navigate('/products');
+      }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -81,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Check if email already exists
-      if (MOCK_USERS.some(u => u.email === email)) {
+      if (MOCK_USERS.some(u => u.email.toLowerCase() === email.toLowerCase())) {
         throw new Error('Email already in use');
       }
       
@@ -93,9 +101,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role
       };
       
+      // Add to mock users list (for demo purposes)
+      MOCK_USERS.push(newUser);
+      
       // Store user in state and localStorage
       setCurrentUser(newUser);
       localStorage.setItem('currentUser', JSON.stringify(newUser));
+      
+      // After successful signup, navigate based on role
+      if (newUser.role === 'seller') {
+        navigate('/dashboard');
+      } else {
+        navigate('/products');
+      }
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -107,6 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
+    navigate('/login');
   };
 
   return (
