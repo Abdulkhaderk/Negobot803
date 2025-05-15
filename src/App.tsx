@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Products from "./pages/Products";
+import ManageProducts from "./pages/ManageProducts";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import Dashboard from "./pages/Dashboard";
@@ -63,13 +64,14 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       
-      {/* Protected routes */}
-      <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-      <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+      {/* Customer routes */}
+      <Route path="/products" element={<RoleRoute role="customer"><Products /></RoleRoute>} />
+      <Route path="/cart" element={<RoleRoute role="customer"><Cart /></RoleRoute>} />
       <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
       
       {/* Seller-specific routes */}
       <Route path="/dashboard" element={<RoleRoute role="seller"><Dashboard /></RoleRoute>} />
+      <Route path="/manage-products" element={<RoleRoute role="seller"><ManageProducts /></RoleRoute>} />
       
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Send } from 'lucide-react';
+import { Send, MessageSquare, DollarSign } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 interface ChatInterfaceProps {
   product: Product;
@@ -75,6 +76,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     }
   }
   
+  const quickMessages = [
+    "Tell me more about this product",
+    "What's your best price?",
+    "Do you offer wholesale discounts?",
+    "I'll take it at the listed price"
+  ];
+
+  const sendQuickMessage = (message: string) => {
+    sendMessage(message);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat messages */}
@@ -96,6 +108,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           </div>
         ))}
         <div ref={messagesEndRef} />
+      </div>
+      
+      {/* Quick message options */}
+      <div className="px-4 py-2 flex flex-wrap gap-2">
+        {quickMessages.map((msg, idx) => (
+          <Button 
+            key={idx} 
+            variant="outline" 
+            size="sm" 
+            className="text-xs"
+            onClick={() => sendQuickMessage(msg)}
+          >
+            {msg}
+          </Button>
+        ))}
       </div>
       
       {/* Negotiation controls */}
@@ -150,7 +177,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
         <Button
           className="w-full"
           onClick={handleMakeOffer}
+          variant="default"
         >
+          <DollarSign className="mr-2 h-4 w-4" />
           Make Offer
         </Button>
         

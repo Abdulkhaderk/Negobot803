@@ -30,7 +30,7 @@ export interface Review {
 interface ProductContextType {
   products: Product[];
   cart: CartItem[];
-  addToCart: (product: Product, quantity: number) => void;
+  addToCart: (product: Product, quantity: number, negotiatedPrice?: number) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -40,6 +40,7 @@ interface ProductContextType {
     message: string;
   };
   addReview: (productId: string, review: Omit<Review, 'id' | 'date'>) => void;
+  addProduct: (product: Omit<Product, 'id' | 'reviews'>) => void;
 }
 
 export interface CartItem {
@@ -211,10 +212,10 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products] = useState<Product[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const addToCart = (product: Product, quantity: number) => {
+  const addToCart = (product: Product, quantity: number, negotiatedPrice?: number) => {
     setCart(prevCart => {
       // Check if product already in cart
       const existingItem = prevCart.find(item => item.product.id === product.id);
@@ -223,12 +224,20 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         // Update quantity if product already in cart
         return prevCart.map(item => 
           item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { 
+                ...item, 
+                quantity: item.quantity + quantity,
+                negotiatedPrice: negotiatedPrice || item.negotiatedPrice
+              }
             : item
         );
       } else {
         // Add new item to cart
-        return [...prevCart, { product, quantity }];
+        return [...prevCart, { 
+          product, 
+          quantity,
+          negotiatedPrice 
+        }];
       }
     });
   };
@@ -276,17 +285,29 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     const pricePerUnit = offeredPrice / quantity;
     const negotiationResult = {
       accepted: pricePerUnit >= minAcceptablePrice,
-      finalPrice: 0,
+      finalPrice: offeredPrice,
       message: ''
     };
 
     if (negotiationResult.accepted) {
       negotiationResult.finalPrice = offeredPrice;
-      negotiationResult.message = "We accept your offer. It's a deal!";
+      
+      const discountPercent = Math.round(((product.price - pricePerUnit) / product.price) * 100);
+      
+      if (wholesaleDiscount > 0) {
+        negotiationResult.message = `We accept your offer! For a bulk purchase of ${quantity} units, you're getting a great deal with a ${discountPercent}% discount from the original price.`;
+      } else {
+        negotiationResult.message = `That's a good offer! We can accept your price of $${pricePerUnit.toFixed(2)} per unit, which is a ${discountPercent}% discount.`;
+      }
     } else {
       // Counter-offer at the minimum acceptable price
       negotiationResult.finalPrice = minAcceptablePrice * quantity;
-      negotiationResult.message = `I'm afraid we can't go that low. Our best offer is $${negotiationResult.finalPrice.toFixed(2)} for ${quantity} units.`;
+      
+      if (wholesaleDiscount > 0) {
+        negotiationResult.message = `I appreciate your wholesale interest, but that price is too low. With your bulk discount, our best offer is $${minAcceptablePrice.toFixed(2)} per unit for ${quantity} units.`;
+      } else {
+        negotiationResult.message = `I'm afraid we can't go that low. Our best offer is $${minAcceptablePrice.toFixed(2)} per unit for ${quantity} units.`;
+      }
     }
 
     return negotiationResult;
@@ -299,9 +320,23 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       date: new Date().toISOString().split('T')[0]
     };
     
-    // In a real app, you'd send this to an API
-    // For now, we'll just log it
-    console.log('New review added:', newReview);
+    setProducts(prevProducts => 
+      prevProducts.map(product => 
+        product.id === productId
+          ? { ...product, reviews: [...product.reviews, newReview] }
+          : product
+      )
+    );
+  };
+  
+  const addProduct = (productData: Omit<Product, 'id' | 'reviews'>) => {
+    const newProduct: Product = {
+      ...productData,
+      id: `${Math.random().toString(36).substring(2, 10)}`,
+      reviews: []
+    };
+    
+    setProducts(prevProducts => [...prevProducts, newProduct]);
   };
 
   return (
@@ -313,7 +348,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateCartQuantity,
       clearCart,
       calculateNegotiatedPrice,
-      addReview
+      addReview,
+      addProduct
     }}>
       {children}
     </ProductContext.Provider>

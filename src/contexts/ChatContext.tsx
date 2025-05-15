@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product, useProducts } from './ProductContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface Message {
   id: string;
@@ -25,9 +26,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const { calculateNegotiatedPrice, addToCart } = useProducts();
 
-  // Initial greeting when a product is selected
+  // Enhanced initial greeting when a product is selected
   const sendBotGreeting = (product: Product) => {
-    const greeting = `Hi there! I'm your negotiation assistant for ${product.name}. The listed price is $${product.price.toFixed(2)}. Would you like to make an offer, or shall I tell you more about this product?`;
+    const greeting = `👋 Hello! I'm your NEGO assistant for "${product.name}". The current price is $${product.price.toFixed(2)}.\n\nI can:\n• Help you negotiate a fair price\n• Tell you more about this product\n• Explain our wholesale discount options\n\nWhat would you like to do today?`;
     
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -73,20 +74,35 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const lowerText = text.toLowerCase();
     let responseText = '';
     
-    // Simple NLP to interpret common intents
-    if (lowerText.includes('tell me more') || lowerText.includes('more information') || lowerText.includes('details')) {
-      responseText = `${product.name} - ${product.description}. It has received an average rating of ${product.rating} stars. We currently have ${product.inventory} units in stock.`;
+    // Enhanced NLP with more interactive responses
+    if (lowerText.includes('hello') || lowerText.includes('hi') || lowerText.includes('hey')) {
+      responseText = `Hello there! How can I help you with the ${product.name} today?`;
+    }
+    else if (lowerText.includes('tell me more') || lowerText.includes('more information') || lowerText.includes('details') || lowerText.includes('about')) {
+      responseText = `📝 **About ${product.name}**\n\n${product.description}\n\n⭐ Rating: ${product.rating}/5\n🏬 In stock: ${product.inventory} units\n\nWould you like to know about our pricing options or make an offer?`;
     } 
-    else if (lowerText.includes('wholesale') || lowerText.includes('bulk') || lowerText.includes('discount')) {
-      responseText = "We offer volume discounts! Here's our wholesale pricing:\n";
-      if (product.wholesalePricing) {
+    else if (lowerText.includes('wholesale') || lowerText.includes('bulk') || lowerText.includes('discount') || lowerText.includes('quantity')) {
+      responseText = "🏷️ **Volume Discount Options**\n\n";
+      if (product.wholesalePricing && product.wholesalePricing.length > 0) {
         product.wholesalePricing.forEach(tier => {
-          responseText += `• Buy ${tier.quantity}+ units: ${tier.discountPercentage}% discount\n`;
+          const discountedPrice = product.price * (1 - tier.discountPercentage / 100);
+          responseText += `• Buy ${tier.quantity}+ units: ${tier.discountPercentage}% off ($${discountedPrice.toFixed(2)} per unit)\n`;
         });
+        responseText += "\nThese discounts are applied automatically when you negotiate with the appropriate quantity. Would you like to make an offer?";
       } else {
-        responseText += "Sorry, this product doesn't have special wholesale pricing.";
+        responseText += "Sorry, this product doesn't have special wholesale pricing, but I can still negotiate the price for individual units.";
       }
-    } 
+    }
+    else if (lowerText.includes('lowest price') || lowerText.includes('best price') || lowerText.includes('minimum price')) {
+      const minPriceDiscount = Math.round(((product.price - product.minPrice) / product.price) * 100);
+      responseText = `I can offer up to ${minPriceDiscount}% discount on the ${product.name}, bringing the price down to $${product.minPrice.toFixed(2)}. This is for individual units. Wholesale discounts may apply for bulk orders.`;
+    }
+    else if (lowerText.includes('thank you') || lowerText.includes('thanks')) {
+      responseText = "You're welcome! I'm happy to help. Is there anything else I can do for you?";
+    }
+    else if (lowerText.includes('bye') || lowerText.includes('goodbye')) {
+      responseText = "Thank you for chatting! Feel free to come back if you have more questions or want to continue negotiating.";
+    }
     else if (lowerText.match(/\$\d+/) || lowerText.match(/\d+ dollars/) || (lowerText.includes('offer') && lowerText.match(/\d+/))) {
       // Extract price from message
       const priceMatch = lowerText.match(/\$(\d+(\.\d+)?)/);
@@ -110,24 +126,34 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const negotiationResult = calculateNegotiatedPrice(product, quantity, parsedOffer);
         
         if (negotiationResult.accepted) {
-          responseText = `${negotiationResult.message} I've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at the negotiated price of $${parsedOffer.toFixed(2)} ${quantity > 1 ? 'per unit' : ''}.`;
+          responseText = `🎉 **Deal!** ${negotiationResult.message}\n\nI've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at $${(parsedOffer / quantity).toFixed(2)} per unit.`;
           
           // Add to cart with negotiated price
-          addToCart(product, quantity);
+          addToCart(product, quantity, parsedOffer);
+          toast({
+            title: "Added to cart!",
+            description: `${quantity} × ${product.name} added at negotiated price.`
+          });
         } else {
-          responseText = negotiationResult.message;
+          responseText = `📊 ${negotiationResult.message}\n\nMay I suggest another offer?`;
         }
       } else {
         responseText = "I didn't catch the price you're offering. Could you please state your offer clearly, like '$100' or '100 dollars'?";
       }
     } 
+    else if (lowerText.includes('add to cart')) {
+      responseText = `I can add the ${product.name} to your cart at the listed price of $${product.price.toFixed(2)}. Would you like to negotiate a better price first?`;
+    }
+    else if (lowerText.includes('help') || lowerText.includes('how')) {
+      responseText = `Here's how negotiation works:\n\n1. Tell me how many units you want\n2. Make a price offer (e.g., "I offer $X per unit")\n3. I'll let you know if I can accept your offer\n4. If accepted, items will be added to your cart at that price\n\nYou can also ask about product details or wholesale pricing.`;
+    }
     else {
       // Generic responses for other inputs
       const genericResponses = [
         `Would you like to make an offer for the ${product.name}? The current price is $${product.price.toFixed(2)}.`,
-        `Is there anything specific you'd like to know about the ${product.name}?`,
-        `We can offer up to 25% discount on this item, depending on quantity. Would you like to make an offer?`,
-        `This ${product.name} is one of our best sellers. Would you like to negotiate a price?`
+        `How many units of the ${product.name} are you interested in purchasing? I can offer better pricing for bulk orders.`,
+        `I can negotiate up to 25% discount on this item, depending on quantity. What's your offer?`,
+        `This ${product.name} is one of our popular items. Would you like to make a price offer?`
       ];
       
       responseText = genericResponses[Math.floor(Math.random() * genericResponses.length)];
@@ -159,12 +185,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       let responseText = '';
       if (negotiationResult.accepted) {
-        responseText = `${negotiationResult.message} I've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at the negotiated price of $${(negotiationResult.finalPrice / quantity).toFixed(2)} per unit.`;
+        responseText = `🎉 **Deal!** ${negotiationResult.message}\n\nI've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at $${(negotiationResult.finalPrice / quantity).toFixed(2)} per unit.`;
         
         // Add to cart with negotiated price
-        addToCart(product, quantity);
+        addToCart(product, quantity, negotiationResult.finalPrice);
+        toast({
+          title: "Added to cart!",
+          description: `${quantity} × ${product.name} added at negotiated price.`
+        });
       } else {
-        responseText = negotiationResult.message;
+        responseText = `📊 ${negotiationResult.message}\n\nMay I suggest another offer?`;
       }
       
       const botMessage: Message = {
