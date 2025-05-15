@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
+import { IndianRupee } from 'lucide-react';
 
 const Cart = () => {
   const { cart, updateCartQuantity, removeFromCart, clearCart } = useProducts();
@@ -34,11 +35,11 @@ const Cart = () => {
     <>
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 animate-fade-in">
         <h1 className="text-2xl font-bold mb-6">Your Shopping Cart</h1>
         
         {isCartEmpty ? (
-          <div className="bg-white rounded-lg p-8 border text-center">
+          <div className="bg-white rounded-lg p-8 border text-center animate-scale-in">
             <h2 className="text-xl font-semibold mb-4">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Browse our products to add items to your cart</p>
             <Link to="/products">
@@ -57,7 +58,7 @@ const Cart = () => {
                 return (
                   <div 
                     key={item.product.id}
-                    className="bg-white rounded-lg border p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+                    className="bg-white rounded-lg border p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 animate-scale-in"
                   >
                     <img 
                       src={item.product.image} 
@@ -70,8 +71,9 @@ const Cart = () => {
                       <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mt-1">
                         <div>
                           <span className="text-gray-500">Price:</span>{' '}
-                          <span className="font-medium">
-                            ${unitPrice.toFixed(2)}
+                          <span className="font-medium flex items-center">
+                            <IndianRupee className="h-3 w-3 mr-1" />
+                            {unitPrice.toFixed(2)}
                             {isNegotiated && (
                               <span className="ml-1 text-green-600 text-xs">(Negotiated)</span>
                             )}
@@ -83,7 +85,10 @@ const Cart = () => {
                         </div>
                         <div>
                           <span className="text-gray-500">Total:</span>{' '}
-                          <span className="font-medium">${itemTotal.toFixed(2)}</span>
+                          <span className="font-medium flex items-center">
+                            <IndianRupee className="h-3 w-3 mr-1" />
+                            {itemTotal.toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -123,13 +128,16 @@ const Cart = () => {
             
             {/* Order summary */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg border p-6 sticky top-24">
+              <div className="bg-white rounded-lg border p-6 sticky top-24 animate-scale-in">
                 <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
                 
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">${subtotal.toFixed(2)}</span>
+                    <span className="font-medium flex items-center">
+                      <IndianRupee className="h-3 w-3 mr-1" />
+                      {subtotal.toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
@@ -137,7 +145,10 @@ const Cart = () => {
                   </div>
                   <div className="pt-2 border-t flex justify-between">
                     <span className="font-semibold">Total</span>
-                    <span className="font-bold">${subtotal.toFixed(2)}</span>
+                    <span className="font-bold flex items-center">
+                      <IndianRupee className="h-4 w-4 mr-1" />
+                      {subtotal.toFixed(2)}
+                    </span>
                   </div>
                 </div>
                 

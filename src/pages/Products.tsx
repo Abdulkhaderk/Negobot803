@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useProducts, Product } from '@/contexts/ProductContext';
 import Header from '@/components/Header';
@@ -18,7 +19,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
-import { Filter, Star } from 'lucide-react';
+import { Filter, Star, IndianRupee } from 'lucide-react';
 import ChatInterface from '@/components/ChatInterface';
 
 const Products = () => {
@@ -126,7 +127,7 @@ const Products = () => {
     <>
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 animate-fade-in">
         <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
           <Input
             type="search"
@@ -188,7 +189,7 @@ const Products = () => {
             {filteredProducts.map(product => (
               <div 
                 key={product.id}
-                className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow animate-scale-in"
               >
                 <img 
                   src={product.image} 
@@ -210,7 +211,10 @@ const Products = () => {
                   </p>
                   
                   <div className="mt-4 flex justify-between items-center">
-                    <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
+                    <span className="text-lg font-bold flex items-center">
+                      <IndianRupee className="h-4 w-4 mr-1" />
+                      {product.price.toFixed(2)}
+                    </span>
                     
                     <div className="space-x-2">
                       <Button 
