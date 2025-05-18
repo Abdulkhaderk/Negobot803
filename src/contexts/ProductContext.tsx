@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 export interface Product {
@@ -51,14 +50,14 @@ export interface CartItem {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-// Mock product data
+// Mock product data - Prices converted to Indian Rupees (approx 1 USD = 75 INR)
 const MOCK_PRODUCTS: Product[] = [
   {
     id: '1',
     name: 'Premium Business Laptop',
     description: 'High-performance laptop with 16GB RAM and 512GB SSD',
-    price: 1200,
-    minPrice: 900, // 75% of original price
+    price: 90000, // Converted to INR (approx)
+    minPrice: 67500, // 75% of original price
     image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=2071&auto=format&fit=crop',
     category: 'Electronics',
     inventory: 50,
@@ -83,8 +82,8 @@ const MOCK_PRODUCTS: Product[] = [
     id: '2',
     name: 'Professional Office Chair',
     description: 'Ergonomic office chair with lumbar support',
-    price: 250,
-    minPrice: 187.5, // 75% of original price
+    price: 18750, // Converted to INR
+    minPrice: 14063, // 75% of original price
     image: 'https://images.unsplash.com/photo-1505649118510-a5d934d3af17?q=80&w=2070&auto=format&fit=crop',
     category: 'Office Furniture',
     inventory: 100,
@@ -109,8 +108,8 @@ const MOCK_PRODUCTS: Product[] = [
     id: '3',
     name: 'Smart Conference System',
     description: 'All-in-one conference system with HD camera and microphone array',
-    price: 800,
-    minPrice: 600, // 75% of original price
+    price: 60000, // Converted to INR
+    minPrice: 45000, // 75% of original price
     image: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?q=80&w=2070&auto=format&fit=crop',
     category: 'Electronics',
     inventory: 30,
@@ -135,8 +134,8 @@ const MOCK_PRODUCTS: Product[] = [
     id: '4',
     name: 'Multifunction Printer',
     description: 'Color laser printer with scanning and copying capabilities',
-    price: 350,
-    minPrice: 262.5, // 75% of original price
+    price: 26250, // Converted to INR
+    minPrice: 19688, // 75% of original price
     image: 'https://images.unsplash.com/photo-1612815292258-f4471d1e7596?q=80&w=2070&auto=format&fit=crop',
     category: 'Office Equipment',
     inventory: 45,
@@ -161,8 +160,8 @@ const MOCK_PRODUCTS: Product[] = [
     id: '5',
     name: 'Digital Whiteboard',
     description: 'Interactive smart whiteboard with cloud integration',
-    price: 1500,
-    minPrice: 1125, // 75% of original price
+    price: 112500, // Converted to INR
+    minPrice: 84375, // 75% of original price
     image: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=2070&auto=format&fit=crop',
     category: 'Office Equipment',
     inventory: 20,
@@ -187,8 +186,8 @@ const MOCK_PRODUCTS: Product[] = [
     id: '6',
     name: 'Executive Desk',
     description: 'Premium oak executive desk with cable management system',
-    price: 650,
-    minPrice: 487.5, // 75% of original price
+    price: 48750, // Converted to INR
+    minPrice: 36563, // 75% of original price
     image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?q=80&w=2039&auto=format&fit=crop',
     category: 'Office Furniture',
     inventory: 15,

@@ -17,7 +17,7 @@ const Index = () => {
                 AI-Powered Price Negotiation for Business
               </h1>
               <p className="text-xl text-gray-700">
-                NegotiBot helps businesses close more deals by negotiating with customers automatically, 24/7.
+                NEGO helps businesses close more deals by negotiating with customers automatically, 24/7.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button 
@@ -94,7 +94,7 @@ const Index = () => {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <p className="text-gray-700 mb-4 italic">
-                "NegotiBot has revolutionized how we handle pricing discussions. Our sales have increased by 22% since implementation."
+                "NEGO has revolutionized how we handle pricing discussions. Our sales have increased by 22% since implementation."
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-blue-100 rounded-full"></div>
@@ -143,7 +143,7 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between">
             <div className="mb-8 md:mb-0">
-              <h3 className="text-2xl font-bold text-white mb-4">NegotiBot</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">NEGO</h3>
               <p className="max-w-xs">
                 AI-powered price negotiation to help your business grow.
               </p>
@@ -180,7 +180,7 @@ const Index = () => {
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center">
-            <p>&copy; {new Date().getFullYear()} NegotiBot. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} NEGO. All rights reserved.</p>
           </div>
         </div>
       </footer>

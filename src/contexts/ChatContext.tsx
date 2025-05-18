@@ -28,7 +28,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Enhanced initial greeting when a product is selected
   const sendBotGreeting = (product: Product) => {
-    const greeting = `👋 Hello! I'm your NEGO assistant for "${product.name}". The current price is $${product.price.toFixed(2)}.\n\nI can:\n• Help you negotiate a fair price\n• Tell you more about this product\n• Explain our wholesale discount options\n\nWhat would you like to do today?`;
+    const greeting = `👋 Hello! I'm your NEGO assistant for "${product.name}". The current price is ₹${product.price.toFixed(2)}.\n\nI can:\n• Help you negotiate a fair price\n• Tell you more about this product\n• Explain our wholesale discount options\n\nWhat would you like to do today?`;
     
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -86,7 +86,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (product.wholesalePricing && product.wholesalePricing.length > 0) {
         product.wholesalePricing.forEach(tier => {
           const discountedPrice = product.price * (1 - tier.discountPercentage / 100);
-          responseText += `• Buy ${tier.quantity}+ units: ${tier.discountPercentage}% off ($${discountedPrice.toFixed(2)} per unit)\n`;
+          responseText += `• Buy ${tier.quantity}+ units: ${tier.discountPercentage}% off (₹${discountedPrice.toFixed(2)} per unit)\n`;
         });
         responseText += "\nThese discounts are applied automatically when you negotiate with the appropriate quantity. Would you like to make an offer?";
       } else {
@@ -95,7 +95,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     else if (lowerText.includes('lowest price') || lowerText.includes('best price') || lowerText.includes('minimum price')) {
       const minPriceDiscount = Math.round(((product.price - product.minPrice) / product.price) * 100);
-      responseText = `I can offer up to ${minPriceDiscount}% discount on the ${product.name}, bringing the price down to $${product.minPrice.toFixed(2)}. This is for individual units. Wholesale discounts may apply for bulk orders.`;
+      responseText = `I can offer up to ${minPriceDiscount}% discount on the ${product.name}, bringing the price down to ₹${product.minPrice.toFixed(2)}. This is for individual units. Wholesale discounts may apply for bulk orders.`;
     }
     else if (lowerText.includes('thank you') || lowerText.includes('thanks')) {
       responseText = "You're welcome! I'm happy to help. Is there anything else I can do for you?";
@@ -103,10 +103,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     else if (lowerText.includes('bye') || lowerText.includes('goodbye')) {
       responseText = "Thank you for chatting! Feel free to come back if you have more questions or want to continue negotiating.";
     }
-    else if (lowerText.match(/\$\d+/) || lowerText.match(/\d+ dollars/) || (lowerText.includes('offer') && lowerText.match(/\d+/))) {
+    else if (lowerText.match(/₹\d+/) || lowerText.match(/\d+ rupees/) || (lowerText.includes('offer') && lowerText.match(/\d+/))) {
       // Extract price from message
-      const priceMatch = lowerText.match(/\$(\d+(\.\d+)?)/);
-      const numberMatch = lowerText.match(/(\d+) dollars/);
+      const priceMatch = lowerText.match(/₹(\d+(\.\d+)?)/);
+      const numberMatch = lowerText.match(/(\d+) rupees/);
       const offerMatch = lowerText.includes('offer') ? lowerText.match(/(\d+)/) : null;
       
       let parsedOffer = 0;
@@ -126,7 +126,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const negotiationResult = calculateNegotiatedPrice(product, quantity, parsedOffer);
         
         if (negotiationResult.accepted) {
-          responseText = `🎉 **Deal!** ${negotiationResult.message}\n\nI've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at $${(parsedOffer / quantity).toFixed(2)} per unit.`;
+          responseText = `🎉 **Deal!** ${negotiationResult.message.replace(/\$/g, '₹')}\n\nI've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at ₹${(parsedOffer / quantity).toFixed(2)} per unit.`;
           
           // Add to cart with negotiated price
           addToCart(product, quantity, parsedOffer);
@@ -135,22 +135,22 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             description: `${quantity} × ${product.name} added at negotiated price.`
           });
         } else {
-          responseText = `📊 ${negotiationResult.message}\n\nMay I suggest another offer?`;
+          responseText = `📊 ${negotiationResult.message.replace(/\$/g, '₹')}\n\nMay I suggest another offer?`;
         }
       } else {
-        responseText = "I didn't catch the price you're offering. Could you please state your offer clearly, like '$100' or '100 dollars'?";
+        responseText = "I didn't catch the price you're offering. Could you please state your offer clearly, like '₹5000' or '5000 rupees'?";
       }
     } 
     else if (lowerText.includes('add to cart')) {
-      responseText = `I can add the ${product.name} to your cart at the listed price of $${product.price.toFixed(2)}. Would you like to negotiate a better price first?`;
+      responseText = `I can add the ${product.name} to your cart at the listed price of ₹${product.price.toFixed(2)}. Would you like to negotiate a better price first?`;
     }
     else if (lowerText.includes('help') || lowerText.includes('how')) {
-      responseText = `Here's how negotiation works:\n\n1. Tell me how many units you want\n2. Make a price offer (e.g., "I offer $X per unit")\n3. I'll let you know if I can accept your offer\n4. If accepted, items will be added to your cart at that price\n\nYou can also ask about product details or wholesale pricing.`;
+      responseText = `Here's how negotiation works:\n\n1. Tell me how many units you want\n2. Make a price offer (e.g., "I offer ₹X per unit")\n3. I'll let you know if I can accept your offer\n4. If accepted, items will be added to your cart at that price\n\nYou can also ask about product details or wholesale pricing.`;
     }
     else {
       // Generic responses for other inputs
       const genericResponses = [
-        `Would you like to make an offer for the ${product.name}? The current price is $${product.price.toFixed(2)}.`,
+        `Would you like to make an offer for the ${product.name}? The current price is ₹${product.price.toFixed(2)}.`,
         `How many units of the ${product.name} are you interested in purchasing? I can offer better pricing for bulk orders.`,
         `I can negotiate up to 25% discount on this item, depending on quantity. What's your offer?`,
         `This ${product.name} is one of our popular items. Would you like to make a price offer?`
@@ -173,7 +173,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: 'user',
-      text: `I'd like to offer $${offeredPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${product.name}.`,
+      text: `I'd like to offer ₹${offeredPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${product.name}.`,
       timestamp: new Date()
     };
     
@@ -185,7 +185,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       let responseText = '';
       if (negotiationResult.accepted) {
-        responseText = `🎉 **Deal!** ${negotiationResult.message}\n\nI've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at $${(negotiationResult.finalPrice / quantity).toFixed(2)} per unit.`;
+        responseText = `🎉 **Deal!** ${negotiationResult.message.replace(/\$/g, '₹')}\n\nI've added ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart at ₹${(negotiationResult.finalPrice / quantity).toFixed(2)} per unit.`;
         
         // Add to cart with negotiated price
         addToCart(product, quantity, negotiationResult.finalPrice);
@@ -194,7 +194,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           description: `${quantity} × ${product.name} added at negotiated price.`
         });
       } else {
-        responseText = `📊 ${negotiationResult.message}\n\nMay I suggest another offer?`;
+        responseText = `📊 ${negotiationResult.message.replace(/\$/g, '₹')}\n\nMay I suggest another offer?`;
       }
       
       const botMessage: Message = {
