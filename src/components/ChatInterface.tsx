@@ -6,12 +6,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Send, MessageSquare, DollarSign } from 'lucide-react';
+import { Send, MessageSquare, DollarSign, Globe, ArrowRight } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import NegoLogo from './NegoLogo';
 
 interface ChatInterfaceProps {
   product: Product;
 }
+
+// Mock comparable prices data (in a real app, this would come from an API)
+const getComparablePrices = (productName: string, basePrice: number) => {
+  // Simulate API data
+  return [
+    { 
+      site: 'Amazon', 
+      price: Math.round((basePrice * (0.95 + Math.random() * 0.25)) * 100) / 100,
+      url: 'https://amazon.in'
+    },
+    { 
+      site: 'Flipkart', 
+      price: Math.round((basePrice * (0.9 + Math.random() * 0.3)) * 100) / 100,
+      url: 'https://flipkart.com'
+    },
+    { 
+      site: 'Snapdeal', 
+      price: Math.round((basePrice * (0.85 + Math.random() * 0.4)) * 100) / 100,
+      url: 'https://snapdeal.com'
+    }
+  ];
+};
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const { messages, setActiveProduct, sendMessage } = useChat();
@@ -19,11 +42,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [offerPrice, setOfferPrice] = useState(Math.round(product.price * 0.9)); // Start with 10% discount
+  const [comparablePrices, setComparablePrices] = useState<{ site: string; price: number; url: string }[]>([]);
+  const [showComparisons, setShowComparisons] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Set active product when component mounts
   useEffect(() => {
     setActiveProduct(product);
+    
+    // Get comparable prices
+    const prices = getComparablePrices(product.name, product.price);
+    setComparablePrices(prices);
     
     // Cleanup on unmount
     return () => {
@@ -52,7 +81,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   
   const handleMakeOffer = () => {
     // Create a message about the offer
-    const message = `I'd like to offer $${offerPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'}.`;
+    const message = `I'd like to offer ₹${offerPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'}.`;
     sendMessage(message);
   };
   
@@ -80,15 +109,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     "Tell me more about this product",
     "What's your best price?",
     "Do you offer wholesale discounts?",
-    "I'll take it at the listed price"
+    "How does your price compare to other sites?"
   ];
 
   const sendQuickMessage = (message: string) => {
+    if (message === "How does your price compare to other sites?") {
+      setShowComparisons(true);
+    }
     sendMessage(message);
   };
 
   return (
     <div className="flex flex-col h-full">
+      {/* Chat header */}
+      <div className="p-4 border-b bg-gray-50 flex items-center space-x-3">
+        <div className="animate-scale-in">
+          <NegoLogo size="sm" />
+        </div>
+        <div>
+          <h3 className="font-medium">NEGO Assistant</h3>
+          <p className="text-xs text-gray-500">AI-powered price negotiation</p>
+        </div>
+      </div>
+      
       {/* Chat messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
@@ -96,6 +139,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
             key={message.id}
             className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
+            {message.sender === 'bot' && (
+              <div className="mr-2 flex-shrink-0 mt-1">
+                <NegoLogo size="sm" />
+              </div>
+            )}
+            
             <div 
               className={`max-w-[80%] p-3 rounded-lg ${
                 message.sender === 'user' 
@@ -107,6 +156,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
             </div>
           </div>
         ))}
+        
+        {/* Price comparisons */}
+        {showComparisons && (
+          <div className="chat-message-container flex justify-start animate-scale-in">
+            <div className="mr-2 flex-shrink-0 mt-1">
+              <NegoLogo size="sm" />
+            </div>
+            <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
+              <p className="font-medium mb-2">Here's how our price compares:</p>
+              <div className="space-y-2">
+                {comparablePrices.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
+                    <span className="flex items-center">
+                      <Globe className="h-3 w-3 mr-1" />
+                      {item.site}:
+                    </span>
+                    <span className="font-semibold">₹{item.price.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
+                  <span className="font-medium">Our price:</span>
+                  <span className="font-semibold">₹{product.price.toFixed(2)}</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
+            </div>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
       
@@ -117,7 +195,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
             key={idx} 
             variant="outline" 
             size="sm" 
-            className="text-xs"
+            className="text-xs animate-fade-in"
+            style={{ animationDelay: `${idx * 100}ms` }}
             onClick={() => sendQuickMessage(msg)}
           >
             {msg}
@@ -126,7 +205,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       </div>
       
       {/* Negotiation controls */}
-      <div className="border-t p-4 space-y-4">
+      <div className="border-t p-4 space-y-4 bg-gray-50">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Quantity</Label>
@@ -152,9 +231,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           </div>
           
           <div>
-            <Label>Your Offer</Label>
+            <Label>Your Offer (₹)</Label>
             <div className="flex items-center space-x-2 mt-2">
-              <span className="text-sm">$</span>
+              <span className="text-sm">₹</span>
               <Slider
                 value={[offerPrice]}
                 min={Math.floor(minPrice)}
@@ -191,7 +270,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
             placeholder="Type your message..."
             className="flex-1"
           />
-          <Button size="icon" onClick={handleSendMessage}>
+          <Button size="icon" onClick={handleSendMessage} className="animate-pulse">
             <Send className="h-4 w-4" />
           </Button>
         </div>

@@ -19,8 +19,9 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
-import { Filter, Star, IndianRupee } from 'lucide-react';
+import { Filter, Star, MessageSquare } from 'lucide-react';
 import ChatInterface from '@/components/ChatInterface';
+import NegoLogo from '@/components/NegoLogo';
 
 const Products = () => {
   const { products, addToCart } = useProducts();
@@ -212,8 +213,7 @@ const Products = () => {
                   
                   <div className="mt-4 flex justify-between items-center">
                     <span className="text-lg font-bold flex items-center">
-                      <IndianRupee className="h-4 w-4 mr-1" />
-                      {product.price.toFixed(2)}
+                      ₹{product.price.toFixed(2)}
                     </span>
                     
                     <div className="space-x-2">
@@ -221,8 +221,13 @@ const Products = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => setSelectedProduct(product)}
+                        className="relative group overflow-hidden"
                       >
-                        Negotiate
+                        <span className="flex items-center">
+                          <span className="mr-2"><NegoLogo size="sm" /></span>
+                          Negotiate
+                        </span>
+                        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity" />
                       </Button>
                       
                       <Button 
@@ -244,9 +249,12 @@ const Products = () => {
 
       {/* Chat dialog for negotiation */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <DialogContent className="sm:max-w-[500px] h-[80vh] flex flex-col">
+        <DialogContent className="sm:max-w-[500px] h-[80vh] flex flex-col nego-chat-enter">
           <DialogHeader>
-            <DialogTitle>Negotiate Price</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <NegoLogo size="sm" />
+              <span>Negotiate Price</span>
+            </DialogTitle>
             <DialogDescription>
               Chat with our AI assistant to negotiate the price
             </DialogDescription>

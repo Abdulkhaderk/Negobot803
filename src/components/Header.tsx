@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, User } from 'lucide-react';
+import { ShoppingCart, User, LogOut } from 'lucide-react';
 
 const Header = () => {
   const { currentUser, logout } = useAuth();
@@ -13,7 +13,9 @@ const Header = () => {
   
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   
-  const handleLogout = () => {
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     logout();
     navigate('/login');
   };
@@ -73,12 +75,14 @@ const Header = () => {
                       <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
                     </div>
                     <div className="p-2">
-                      <button 
+                      <Button 
                         onClick={handleLogout}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        variant="ghost"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md flex items-center"
                       >
+                        <LogOut className="h-4 w-4 mr-2" />
                         Logout
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
