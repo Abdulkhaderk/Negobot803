@@ -19,7 +19,7 @@ loaderElement.innerHTML = `
         </span>
       </div>
     </div>
-    <h1 class="text-3xl font-bold mt-4 animate-fade-in">NEGO</h1>
+    <h1 class="text-3xl font-bold mt-4 animate-fade-in">NEGO Bot</h1>
     <p class="text-muted-foreground animate-fade-in">AI-Powered Price Negotiation</p>
   </div>
 `;
