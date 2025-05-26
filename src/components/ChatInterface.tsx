@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, DollarSign, Globe, ArrowRight } from 'lucide-react';
+import { Send, MessageSquare, DollarSign, Globe, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import NegoLogo from './NegoLogo';
 import DealSuccessAnimation from './DealSuccessAnimation';
@@ -48,6 +48,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const [showComparisons, setShowComparisons] = useState(false);
   const [showDealAnimation, setShowDealAnimation] = useState(false);
   const [lastDealSavings, setLastDealSavings] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
@@ -71,11 +72,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   }, [product, setActiveProduct, trackActivity]);
   
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Auto-scroll to bottom when messages change
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages, isTyping]);
   
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
+      setIsTyping(true);
+      
       // Track customer message
       trackActivity({
         type: 'negotiation_start',
@@ -86,6 +92,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       
       sendMessage(inputMessage);
       setInputMessage('');
+      
+      // Stop typing indicator after bot responds
+      setTimeout(() => {
+        setIsTyping(false);
+      }, 2000);
     }
   };
   
@@ -97,9 +108,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   };
   
   const handleMakeOffer = () => {
-    // Calculate minimum acceptable price (75% of original = max 25% discount)
-    const minAcceptablePrice = product.price * 0.75;
-    const pricePerUnit = offerPrice / quantity;
+    // Strict 25% discount limit enforcement
+    const minAcceptablePrice = product.price * 0.75; // 25% max discount
+    const totalMinPrice = minAcceptablePrice * quantity;
+    
+    console.log('Offer details:', {
+      offerPrice,
+      quantity,
+      pricePerUnit: offerPrice / quantity,
+      minAcceptablePrice,
+      totalMinPrice,
+      willAccept: offerPrice >= totalMinPrice
+    });
     
     // Track offer
     trackActivity({
@@ -110,11 +130,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       details: `Offered ₹${offerPrice.toFixed(2)} for ${quantity} units`
     });
     
+    setIsTyping(true);
     const message = `I'd like to offer ₹${offerPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'}.`;
     sendMessage(message);
     
-    // Check if deal will be accepted with proper 25% limit
-    if (pricePerUnit >= minAcceptablePrice) {
+    // Check if deal will be accepted with strict 25% limit
+    if (offerPrice >= totalMinPrice) {
       const originalTotal = product.price * quantity;
       const savings = originalTotal - offerPrice;
       setLastDealSavings(savings);
@@ -122,6 +143,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       // Show animation after a delay to match chat response
       setTimeout(() => {
         setShowDealAnimation(true);
+        setIsTyping(false);
         
         // Track successful deal
         trackActivity({
@@ -133,11 +155,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           details: `Deal successful: ₹${offerPrice.toFixed(2)} for ${quantity} units`
         });
       }, 2000);
+    } else {
+      setTimeout(() => {
+        setIsTyping(false);
+      }, 2000);
     }
   };
   
-  const minPrice = product.price * 0.75; // 25% max discount
-  const maxPrice = product.price;
+  const minPrice = Math.ceil(product.price * 0.75); // 25% max discount
+  const maxPrice = Math.ceil(product.price);
   
   let wholesaleInfo = null;
   if (product.wholesalePricing) {
@@ -166,6 +192,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       setShowComparisons(true);
     }
     
+    setIsTyping(true);
+    
     // Track quick message
     trackActivity({
       type: 'negotiation_start',
@@ -175,6 +203,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     });
     
     sendMessage(message);
+    
+    setTimeout(() => {
+      setIsTyping(false);
+    }, 2000);
   };
 
   const handleDealAnimationComplete = () => {
@@ -199,9 +231,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
 
   return (
     <>
-      <div className="flex flex-col h-full">
-        {/* Chat header - Fixed positioning */}
-        <div className="flex-shrink-0 p-4 border-b bg-gray-50">
+      <div className="flex flex-col h-full max-h-[80vh]">
+        {/* Chat header */}
+        <div className="flex-shrink-0 p-4 border-b bg-gray-50 rounded-t-lg">
           <div className="flex items-center space-x-3">
             <div className="animate-scale-in">
               <NegoLogo size="sm" />
@@ -213,11 +245,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           </div>
         </div>
         
-        {/* Chat messages with proper scroll - Fixed height and overflow */}
-        <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
-            <div className="p-4 space-y-4" ref={scrollAreaRef}>
-              {messages.length === 0 && (
+        {/* Chat messages area with fixed height and proper scrolling */}
+        <div className="flex-1 min-h-0 bg-white">
+          <ScrollArea className="h-[300px] w-full">
+            <div className="p-4 space-y-4">
+              {messages.length === 0 && !isTyping && (
                 <div className="text-center text-gray-500 py-8">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p>Start a conversation to negotiate the price!</p>
@@ -227,7 +259,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
               {messages.map((message) => (
                 <div 
                   key={message.id}
-                  className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
                   {message.sender === 'bot' && (
                     <div className="mr-2 flex-shrink-0 mt-1">
@@ -236,7 +268,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                   )}
                   
                   <div 
-                    className={`max-w-[80%] p-3 rounded-lg ${
+                    className={`max-w-[80%] p-3 rounded-lg break-words ${
                       message.sender === 'user' 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-secondary text-secondary-foreground'
@@ -247,8 +279,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                 </div>
               ))}
               
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex justify-start animate-fade-in">
+                  <div className="mr-2 flex-shrink-0 mt-1">
+                    <NegoLogo size="sm" />
+                  </div>
+                  <div className="bg-secondary text-secondary-foreground p-3 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">NEGO Assistant is typing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {showComparisons && (
-                <div className="chat-message-container flex justify-start animate-scale-in">
+                <div className="flex justify-start animate-scale-in">
                   <div className="mr-2 flex-shrink-0 mt-1">
                     <NegoLogo size="sm" />
                   </div>
@@ -279,15 +326,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           </ScrollArea>
         </div>
         
-        {/* Quick message options - Fixed positioning */}
-        <div className="flex-shrink-0 px-4 py-2 border-t bg-gray-50">
+        {/* Quick message options */}
+        <div className="flex-shrink-0 px-4 py-3 border-t bg-gray-50">
           <div className="flex flex-wrap gap-2">
             {quickMessages.map((msg, idx) => (
               <Button 
                 key={idx} 
                 variant="outline" 
                 size="sm" 
-                className="text-xs animate-fade-in"
+                className="text-xs animate-fade-in hover:bg-primary hover:text-primary-foreground transition-colors"
                 style={{ animationDelay: `${idx * 100}ms` }}
                 onClick={() => sendQuickMessage(msg)}
               >
@@ -297,8 +344,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           </div>
         </div>
         
-        {/* Negotiation controls - Fixed positioning */}
-        <div className="flex-shrink-0 border-t p-4 space-y-4 bg-white">
+        {/* Negotiation controls */}
+        <div className="flex-shrink-0 border-t p-4 space-y-4 bg-white rounded-b-lg">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium">Quantity</Label>
@@ -311,7 +358,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                 >
                   -
                 </Button>
-                <span className="w-8 text-center text-sm">{quantity}</span>
+                <span className="w-8 text-center text-sm font-medium">{quantity}</span>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -329,13 +376,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                 <span className="text-sm">₹</span>
                 <Slider
                   value={[offerPrice]}
-                  min={Math.floor(minPrice)}
-                  max={Math.ceil(maxPrice)}
-                  step={1}
+                  min={minPrice}
+                  max={maxPrice}
+                  step={100}
                   onValueChange={(values) => setOfferPrice(values[0])}
                   className="flex-1"
                 />
-                <span className="min-w-[60px] text-right text-sm">{offerPrice.toFixed(0)}</span>
+                <span className="min-w-[60px] text-right text-sm font-medium">{offerPrice.toFixed(0)}</span>
+              </div>
+              
+              <div className="mt-1 text-xs text-gray-500">
+                Min: ₹{minPrice} (25% max discount)
               </div>
               
               {wholesaleInfo && (

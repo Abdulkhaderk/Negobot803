@@ -41,7 +41,7 @@ const DealSuccessAnimation: React.FC<DealSuccessAnimationProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl relative overflow-hidden">
+      <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl relative overflow-hidden min-h-[400px] flex flex-col justify-center">
         {/* Stage 0 & 1: Success Icon */}
         <div className={`transition-all duration-500 ${stage >= 1 ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}>
           <div className="relative">
