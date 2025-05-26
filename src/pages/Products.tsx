@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useProducts, Product } from '@/contexts/ProductContext';
 import Header from '@/components/Header';
@@ -210,19 +211,19 @@ const Products = () => {
                     {product.description}
                   </p>
                   
-                  <div className="mt-4 flex flex-col gap-3">
+                  <div className="mt-4 flex justify-between items-center">
                     <span className="text-lg font-bold flex items-center">
                       ₹{product.price.toFixed(2)}
                     </span>
                     
-                    <div className="flex gap-2 w-full">
+                    <div className="space-x-2">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => setSelectedProduct(product)}
-                        className="flex-1 relative group overflow-hidden"
+                        className="relative group overflow-hidden"
                       >
-                        <span className="flex items-center justify-center">
+                        <span className="flex items-center">
                           <span className="mr-2"><NegoLogo size="sm" /></span>
                           Negotiate
                         </span>
@@ -234,7 +235,6 @@ const Products = () => {
                         onClick={() => {
                           addToCart(product, 1);
                         }}
-                        className="flex-1"
                       >
                         Add to Cart
                       </Button>

@@ -5,14 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, User, LogOut } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
   const { currentUser, logout } = useAuth();
@@ -21,7 +13,9 @@ const Header = () => {
   
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   
-  const handleLogout = () => {
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     logout();
     navigate('/login');
   };
@@ -69,27 +63,29 @@ const Header = () => {
                   </Link>
                 )}
                 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="rounded-full p-2">
-                      <User className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>
-                      <div>
-                        <p className="font-medium">{currentUser.name}</p>
-                        <p className="text-sm text-gray-500">{currentUser.email}</p>
-                        <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="relative group">
+                  <Button variant="ghost" className="rounded-full p-2">
+                    <User className="h-5 w-5" />
+                  </Button>
+                  
+                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg hidden group-hover:block">
+                    <div className="p-3 border-b">
+                      <p className="font-medium">{currentUser.name}</p>
+                      <p className="text-sm text-gray-500">{currentUser.email}</p>
+                      <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
+                    </div>
+                    <div className="p-2">
+                      <Button 
+                        onClick={handleLogout}
+                        variant="ghost"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md flex items-center"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           ) : (
