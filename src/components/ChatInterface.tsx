@@ -2,22 +2,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { Product, useProducts } from '@/contexts/ProductContext';
-import { useCustomerTracking } from '@/contexts/CustomerTrackingContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, DollarSign, Globe, ArrowRight, Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Send, MessageSquare, DollarSign, Globe, ArrowRight } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import NegoLogo from './NegoLogo';
-import DealSuccessAnimation from './DealSuccessAnimation';
 
 interface ChatInterfaceProps {
   product: Product;
 }
 
+// Mock comparable prices data (in a real app, this would come from an API)
 const getComparablePrices = (productName: string, basePrice: number) => {
+  // Simulate API data
   return [
     { 
       site: 'Amazon', 
@@ -40,63 +39,36 @@ const getComparablePrices = (productName: string, basePrice: number) => {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const { messages, setActiveProduct, sendMessage } = useChat();
   const { calculateNegotiatedPrice, addToCart } = useProducts();
-  const { trackActivity } = useCustomerTracking();
   const [inputMessage, setInputMessage] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [offerPrice, setOfferPrice] = useState(Math.round(product.price * 0.9));
+  const [offerPrice, setOfferPrice] = useState(Math.round(product.price * 0.9)); // Start with 10% discount
   const [comparablePrices, setComparablePrices] = useState<{ site: string; price: number; url: string }[]>([]);
   const [showComparisons, setShowComparisons] = useState(false);
-  const [showDealAnimation, setShowDealAnimation] = useState(false);
-  const [lastDealSavings, setLastDealSavings] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
+  // Set active product when component mounts
   useEffect(() => {
     setActiveProduct(product);
     
-    // Track product view
-    trackActivity({
-      type: 'product_view',
-      productId: product.id,
-      productName: product.name,
-      details: `Viewed product: ${product.name}`
-    });
-    
+    // Get comparable prices
     const prices = getComparablePrices(product.name, product.price);
     setComparablePrices(prices);
     
+    // Cleanup on unmount
     return () => {
       setActiveProduct(null);
     };
-  }, [product, setActiveProduct, trackActivity]);
+  }, [product, setActiveProduct]);
   
+  // Scroll to bottom when messages change
   useEffect(() => {
-    // Auto-scroll to bottom when messages change
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, [messages, isTyping]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
   
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
-      setIsTyping(true);
-      
-      // Track customer message
-      trackActivity({
-        type: 'negotiation_start',
-        productId: product.id,
-        productName: product.name,
-        details: `Customer message: ${inputMessage.trim()}`
-      });
-      
       sendMessage(inputMessage);
       setInputMessage('');
-      
-      // Stop typing indicator after bot responds
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 2000);
     }
   };
   
@@ -108,63 +80,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   };
   
   const handleMakeOffer = () => {
-    // Strict 25% discount limit enforcement
-    const minAcceptablePrice = product.price * 0.75; // 25% max discount
-    const totalMinPrice = minAcceptablePrice * quantity;
-    
-    console.log('Offer details:', {
-      offerPrice,
-      quantity,
-      pricePerUnit: offerPrice / quantity,
-      minAcceptablePrice,
-      totalMinPrice,
-      willAccept: offerPrice >= totalMinPrice
-    });
-    
-    // Track offer
-    trackActivity({
-      type: 'price_offer',
-      productId: product.id,
-      productName: product.name,
-      offerAmount: offerPrice,
-      details: `Offered ₹${offerPrice.toFixed(2)} for ${quantity} units`
-    });
-    
-    setIsTyping(true);
+    // Create a message about the offer
     const message = `I'd like to offer ₹${offerPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'}.`;
     sendMessage(message);
-    
-    // Check if deal will be accepted with strict 25% limit
-    if (offerPrice >= totalMinPrice) {
-      const originalTotal = product.price * quantity;
-      const savings = originalTotal - offerPrice;
-      setLastDealSavings(savings);
-      
-      // Show animation after a delay to match chat response
-      setTimeout(() => {
-        setShowDealAnimation(true);
-        setIsTyping(false);
-        
-        // Track successful deal
-        trackActivity({
-          type: 'deal_success',
-          productId: product.id,
-          productName: product.name,
-          offerAmount: offerPrice,
-          finalPrice: offerPrice,
-          details: `Deal successful: ₹${offerPrice.toFixed(2)} for ${quantity} units`
-        });
-      }, 2000);
-    } else {
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 2000);
-    }
   };
   
-  const minPrice = Math.ceil(product.price * 0.75); // 25% max discount
-  const maxPrice = Math.ceil(product.price);
+  // Calculate price range
+  const minPrice = product.minPrice;
+  const maxPrice = product.price;
   
+  // Determine if wholesale pricing applies
   let wholesaleInfo = null;
   if (product.wholesalePricing) {
     const applicableTier = [...product.wholesalePricing]
@@ -191,244 +116,166 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     if (message === "How does your price compare to other sites?") {
       setShowComparisons(true);
     }
-    
-    setIsTyping(true);
-    
-    // Track quick message
-    trackActivity({
-      type: 'negotiation_start',
-      productId: product.id,
-      productName: product.name,
-      details: `Quick message: ${message}`
-    });
-    
     sendMessage(message);
-    
-    setTimeout(() => {
-      setIsTyping(false);
-    }, 2000);
-  };
-
-  const handleDealAnimationComplete = () => {
-    setShowDealAnimation(false);
-    
-    // Add to cart with negotiated price
-    addToCart(product, quantity, offerPrice);
-    
-    // Track cart addition
-    trackActivity({
-      type: 'cart_add',
-      productId: product.id,
-      productName: product.name,
-      details: `Added to cart after successful negotiation`
-    });
-
-    toast({
-      title: "🎉 Added to Cart!",
-      description: `${quantity} × ${product.name} successfully added!`,
-    });
   };
 
   return (
-    <>
-      <div className="flex flex-col h-full max-h-[80vh]">
-        {/* Chat header */}
-        <div className="flex-shrink-0 p-4 border-b bg-gray-50 rounded-t-lg">
-          <div className="flex items-center space-x-3">
-            <div className="animate-scale-in">
-              <NegoLogo size="sm" />
-            </div>
-            <div>
-              <h3 className="font-medium text-left">NEGO Assistant</h3>
-              <p className="text-xs text-gray-500 text-left">AI-powered price negotiation</p>
-            </div>
-          </div>
+    <div className="flex flex-col h-full">
+      {/* Chat header */}
+      <div className="p-4 border-b bg-gray-50 flex items-center space-x-3">
+        <div className="animate-scale-in">
+          <NegoLogo size="sm" />
         </div>
-        
-        {/* Chat messages area with fixed height and proper scrolling */}
-        <div className="flex-1 min-h-0 bg-white">
-          <ScrollArea className="h-[300px] w-full">
-            <div className="p-4 space-y-4">
-              {messages.length === 0 && !isTyping && (
-                <div className="text-center text-gray-500 py-8">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>Start a conversation to negotiate the price!</p>
-                </div>
-              )}
-              
-              {messages.map((message) => (
-                <div 
-                  key={message.id}
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-                >
-                  {message.sender === 'bot' && (
-                    <div className="mr-2 flex-shrink-0 mt-1">
-                      <NegoLogo size="sm" />
-                    </div>
-                  )}
-                  
-                  <div 
-                    className={`max-w-[80%] p-3 rounded-lg break-words ${
-                      message.sender === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary text-secondary-foreground'
-                    }`}
-                  >
-                    <p className="whitespace-pre-line text-sm">{message.text}</p>
-                  </div>
-                </div>
-              ))}
-              
-              {/* Typing indicator */}
-              {isTyping && (
-                <div className="flex justify-start animate-fade-in">
-                  <div className="mr-2 flex-shrink-0 mt-1">
-                    <NegoLogo size="sm" />
-                  </div>
-                  <div className="bg-secondary text-secondary-foreground p-3 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">NEGO Assistant is typing...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {showComparisons && (
-                <div className="flex justify-start animate-scale-in">
-                  <div className="mr-2 flex-shrink-0 mt-1">
-                    <NegoLogo size="sm" />
-                  </div>
-                  <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
-                    <p className="font-medium mb-2">Here's how our price compares:</p>
-                    <div className="space-y-2">
-                      {comparablePrices.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
-                          <span className="flex items-center">
-                            <Globe className="h-3 w-3 mr-1" />
-                            {item.site}:
-                          </span>
-                          <span className="font-semibold">₹{item.price.toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
-                        <span className="font-medium">Our price:</span>
-                        <span className="font-semibold">₹{product.price.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-        </div>
-        
-        {/* Quick message options */}
-        <div className="flex-shrink-0 px-4 py-3 border-t bg-gray-50">
-          <div className="flex flex-wrap gap-2">
-            {quickMessages.map((msg, idx) => (
-              <Button 
-                key={idx} 
-                variant="outline" 
-                size="sm" 
-                className="text-xs animate-fade-in hover:bg-primary hover:text-primary-foreground transition-colors"
-                style={{ animationDelay: `${idx * 100}ms` }}
-                onClick={() => sendQuickMessage(msg)}
-              >
-                {msg}
-              </Button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Negotiation controls */}
-        <div className="flex-shrink-0 border-t p-4 space-y-4 bg-white rounded-b-lg">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Quantity</Label>
-              <div className="flex items-center space-x-2 mt-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-                  className="h-8 w-8 p-0"
-                >
-                  -
-                </Button>
-                <span className="w-8 text-center text-sm font-medium">{quantity}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="h-8 w-8 p-0"
-                >
-                  +
-                </Button>
-              </div>
-            </div>
-            
-            <div>
-              <Label className="text-sm font-medium">Your Offer (₹)</Label>
-              <div className="flex items-center space-x-2 mt-2">
-                <span className="text-sm">₹</span>
-                <Slider
-                  value={[offerPrice]}
-                  min={minPrice}
-                  max={maxPrice}
-                  step={100}
-                  onValueChange={(values) => setOfferPrice(values[0])}
-                  className="flex-1"
-                />
-                <span className="min-w-[60px] text-right text-sm font-medium">{offerPrice.toFixed(0)}</span>
-              </div>
-              
-              <div className="mt-1 text-xs text-gray-500">
-                Min: ₹{minPrice} (25% max discount)
-              </div>
-              
-              {wholesaleInfo && (
-                <p className="text-xs text-green-600 mt-1">
-                  Volume discount: {wholesaleInfo.discount}% off
-                </p>
-              )}
-            </div>
-          </div>
-          
-          <Button
-            className="w-full"
-            onClick={handleMakeOffer}
-            variant="default"
-          >
-            <DollarSign className="mr-2 h-4 w-4" />
-            Make Offer
-          </Button>
-          
-          <div className="flex items-center space-x-2">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
-              className="flex-1"
-            />
-            <Button size="icon" onClick={handleSendMessage}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+        <div>
+          <h3 className="font-medium">NEGO Assistant</h3>
+          <p className="text-xs text-gray-500">AI-powered price negotiation</p>
         </div>
       </div>
-
-      {/* Deal Success Animation */}
-      <DealSuccessAnimation
-        show={showDealAnimation}
-        onComplete={handleDealAnimationComplete}
-        productName={product.name}
-        savings={lastDealSavings}
-      />
-    </>
+      
+      {/* Chat messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((message) => (
+          <div 
+            key={message.id}
+            className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            {message.sender === 'bot' && (
+              <div className="mr-2 flex-shrink-0 mt-1">
+                <NegoLogo size="sm" />
+              </div>
+            )}
+            
+            <div 
+              className={`max-w-[80%] p-3 rounded-lg ${
+                message.sender === 'user' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-secondary text-secondary-foreground'
+              }`}
+            >
+              <p className="whitespace-pre-line">{message.text}</p>
+            </div>
+          </div>
+        ))}
+        
+        {/* Price comparisons */}
+        {showComparisons && (
+          <div className="chat-message-container flex justify-start animate-scale-in">
+            <div className="mr-2 flex-shrink-0 mt-1">
+              <NegoLogo size="sm" />
+            </div>
+            <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
+              <p className="font-medium mb-2">Here's how our price compares:</p>
+              <div className="space-y-2">
+                {comparablePrices.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
+                    <span className="flex items-center">
+                      <Globe className="h-3 w-3 mr-1" />
+                      {item.site}:
+                    </span>
+                    <span className="font-semibold">₹{item.price.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
+                  <span className="font-medium">Our price:</span>
+                  <span className="font-semibold">₹{product.price.toFixed(2)}</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+      
+      {/* Quick message options */}
+      <div className="px-4 py-2 flex flex-wrap gap-2">
+        {quickMessages.map((msg, idx) => (
+          <Button 
+            key={idx} 
+            variant="outline" 
+            size="sm" 
+            className="text-xs animate-fade-in"
+            style={{ animationDelay: `${idx * 100}ms` }}
+            onClick={() => sendQuickMessage(msg)}
+          >
+            {msg}
+          </Button>
+        ))}
+      </div>
+      
+      {/* Negotiation controls */}
+      <div className="border-t p-4 space-y-4 bg-gray-50">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Quantity</Label>
+            <div className="flex items-center space-x-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+                className="h-8 w-8 p-0"
+              >
+                -
+              </Button>
+              <span className="w-8 text-center">{quantity}</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setQuantity(quantity + 1)}
+                className="h-8 w-8 p-0"
+              >
+                +
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <Label>Your Offer (₹)</Label>
+            <div className="flex items-center space-x-2 mt-2">
+              <span className="text-sm">₹</span>
+              <Slider
+                value={[offerPrice]}
+                min={Math.floor(minPrice)}
+                max={Math.ceil(maxPrice)}
+                step={1}
+                onValueChange={(values) => setOfferPrice(values[0])}
+                className="flex-1"
+              />
+              <span className="min-w-[50px] text-right">{offerPrice.toFixed(2)}</span>
+            </div>
+            
+            {wholesaleInfo && (
+              <p className="text-xs text-green-600 mt-1">
+                Volume discount: {wholesaleInfo.discount}% off
+              </p>
+            )}
+          </div>
+        </div>
+        
+        <Button
+          className="w-full"
+          onClick={handleMakeOffer}
+          variant="default"
+        >
+          <DollarSign className="mr-2 h-4 w-4" />
+          Make Offer
+        </Button>
+        
+        <div className="flex items-center space-x-2">
+          <Input
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your message..."
+            className="flex-1"
+          />
+          <Button size="icon" onClick={handleSendMessage} className="animate-pulse">
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

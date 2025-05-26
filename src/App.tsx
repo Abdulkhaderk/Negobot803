@@ -20,7 +20,6 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ProductProvider } from "./contexts/ProductContext";
 import { ChatProvider } from "./contexts/ChatContext";
-import { CustomerTrackingProvider } from "./contexts/CustomerTrackingContext";
 
 const queryClient = new QueryClient();
 
@@ -87,13 +86,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <CustomerTrackingProvider>
-            <ProductProvider>
-              <ChatProvider>
-                <AppRoutes />
-              </ChatProvider>
-            </ProductProvider>
-          </CustomerTrackingProvider>
+          <ProductProvider>
+            <ChatProvider>
+              <AppRoutes />
+            </ChatProvider>
+          </ProductProvider>
         </AuthProvider>
       </TooltipProvider>
     </BrowserRouter>
