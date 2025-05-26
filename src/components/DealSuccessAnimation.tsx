@@ -26,7 +26,7 @@ const DealSuccessAnimation: React.FC<DealSuccessAnimationProps> = ({
       const timer4 = setTimeout(() => {
         onComplete();
         setStage(0);
-      }, 3000);
+      }, 3500);
 
       return () => {
         clearTimeout(timer1);
@@ -41,7 +41,7 @@ const DealSuccessAnimation: React.FC<DealSuccessAnimationProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-mx-4 text-center shadow-2xl">
+      <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl relative overflow-hidden">
         {/* Stage 0 & 1: Success Icon */}
         <div className={`transition-all duration-500 ${stage >= 1 ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}>
           <div className="relative">
@@ -79,20 +79,18 @@ const DealSuccessAnimation: React.FC<DealSuccessAnimationProps> = ({
 
         {/* Confetti Effect */}
         {stage >= 2 && (
-          <div className="absolute inset-0 pointer-events-none">
-            {[...Array(20)].map((_, i) => (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {[...Array(15)].map((_, i) => (
               <div
                 key={i}
-                className="absolute animate-bounce"
+                className="absolute w-2 h-2 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full opacity-75 animate-bounce"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
                   animationDelay: `${Math.random() * 2}s`,
                   animationDuration: `${1 + Math.random()}s`
                 }}
-              >
-                <div className="w-2 h-2 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full opacity-75" />
-              </div>
+              />
             ))}
           </div>
         )}

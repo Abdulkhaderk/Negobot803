@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 export interface Product {
@@ -260,6 +261,11 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const calculateNegotiatedPrice = (product: Product, quantity: number, offeredPrice: number) => {
+    // Calculate minimum acceptable price (75% of original = max 25% discount)
+    const maxDiscountPercent = 25;
+    const minAcceptablePrice = product.price * (1 - maxDiscountPercent / 100);
+    const pricePerUnit = offeredPrice / quantity;
+    
     // Check if it's a wholesale order and apply appropriate discount
     let basePrice = product.price;
     let wholesaleDiscount = 0;
@@ -280,8 +286,6 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       basePrice = basePrice * (1 - wholesaleDiscount / 100);
     }
     
-    const minAcceptablePrice = product.minPrice;
-    const pricePerUnit = offeredPrice / quantity;
     const negotiationResult = {
       accepted: pricePerUnit >= minAcceptablePrice,
       finalPrice: offeredPrice,
@@ -294,18 +298,18 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       const discountPercent = Math.round(((product.price - pricePerUnit) / product.price) * 100);
       
       if (wholesaleDiscount > 0) {
-        negotiationResult.message = `We accept your offer! For a bulk purchase of ${quantity} units, you're getting a great deal with a ${discountPercent}% discount from the original price.`;
+        negotiationResult.message = `Great deal! For a bulk purchase of ${quantity} units, you're getting a ${discountPercent}% discount from the original price.`;
       } else {
-        negotiationResult.message = `That's a good offer! We can accept your price of $${pricePerUnit.toFixed(2)} per unit, which is a ${discountPercent}% discount.`;
+        negotiationResult.message = `Excellent! We accept your offer of ₹${pricePerUnit.toFixed(2)} per unit, which gives you a ${discountPercent}% discount.`;
       }
     } else {
       // Counter-offer at the minimum acceptable price
       negotiationResult.finalPrice = minAcceptablePrice * quantity;
       
       if (wholesaleDiscount > 0) {
-        negotiationResult.message = `I appreciate your wholesale interest, but that price is too low. With your bulk discount, our best offer is $${minAcceptablePrice.toFixed(2)} per unit for ${quantity} units.`;
+        negotiationResult.message = `I appreciate your wholesale interest, but that's below our limit. Our best offer is ₹${minAcceptablePrice.toFixed(2)} per unit for ${quantity} units (25% off maximum).`;
       } else {
-        negotiationResult.message = `I'm afraid we can't go that low. Our best offer is $${minAcceptablePrice.toFixed(2)} per unit for ${quantity} units.`;
+        negotiationResult.message = `That's too low for us. Our best price is ₹${minAcceptablePrice.toFixed(2)} per unit for ${quantity} units (25% discount maximum).`;
       }
     }
 

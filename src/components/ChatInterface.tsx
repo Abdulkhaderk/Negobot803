@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, MessageSquare, DollarSign, Globe, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import NegoLogo from './NegoLogo';
@@ -131,7 +132,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     }
   };
   
-  const minPrice = product.minPrice;
+  const minPrice = product.price * 0.75; // 25% max discount
   const maxPrice = product.price;
   
   let wholesaleInfo = null;
@@ -175,6 +176,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const handleDealAnimationComplete = () => {
     setShowDealAnimation(false);
     
+    // Add to cart with negotiated price
+    const negotiationResult = calculateNegotiatedPrice(product, quantity, offerPrice);
+    addToCart(product, quantity, negotiationResult.finalPrice);
+    
     // Track cart addition
     trackActivity({
       type: 'cart_add',
@@ -182,13 +187,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       productName: product.name,
       details: `Added to cart after successful negotiation`
     });
+
+    toast({
+      title: "🎉 Added to Cart!",
+      description: `${quantity} × ${product.name} successfully added!`,
+    });
   };
 
   return (
     <>
       <div className="flex flex-col h-full">
         {/* Chat header */}
-        <div className="p-4 border-b bg-gray-50 flex items-center space-x-3">
+        <div className="p-4 border-b bg-gray-50 flex items-center space-x-3 flex-shrink-0">
           <div className="animate-scale-in">
             <NegoLogo size="sm" />
           </div>
@@ -198,63 +208,65 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           </div>
         </div>
         
-        {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div 
-              key={message.id}
-              className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.sender === 'bot' && (
+        {/* Chat messages with proper scroll */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div 
+                key={message.id}
+                className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {message.sender === 'bot' && (
+                  <div className="mr-2 flex-shrink-0 mt-1">
+                    <NegoLogo size="sm" />
+                  </div>
+                )}
+                
+                <div 
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.sender === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-secondary text-secondary-foreground'
+                  }`}
+                >
+                  <p className="whitespace-pre-line">{message.text}</p>
+                </div>
+              </div>
+            ))}
+            
+            {showComparisons && (
+              <div className="chat-message-container flex justify-start animate-scale-in">
                 <div className="mr-2 flex-shrink-0 mt-1">
                   <NegoLogo size="sm" />
                 </div>
-              )}
-              
-              <div 
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  message.sender === 'user' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-secondary text-secondary-foreground'
-                }`}
-              >
-                <p className="whitespace-pre-line">{message.text}</p>
-              </div>
-            </div>
-          ))}
-          
-          {showComparisons && (
-            <div className="chat-message-container flex justify-start animate-scale-in">
-              <div className="mr-2 flex-shrink-0 mt-1">
-                <NegoLogo size="sm" />
-              </div>
-              <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
-                <p className="font-medium mb-2">Here's how our price compares:</p>
-                <div className="space-y-2">
-                  {comparablePrices.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
-                      <span className="flex items-center">
-                        <Globe className="h-3 w-3 mr-1" />
-                        {item.site}:
-                      </span>
-                      <span className="font-semibold">₹{item.price.toFixed(2)}</span>
+                <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
+                  <p className="font-medium mb-2">Here's how our price compares:</p>
+                  <div className="space-y-2">
+                    {comparablePrices.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
+                        <span className="flex items-center">
+                          <Globe className="h-3 w-3 mr-1" />
+                          {item.site}:
+                        </span>
+                        <span className="font-semibold">₹{item.price.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
+                      <span className="font-medium">Our price:</span>
+                      <span className="font-semibold">₹{product.price.toFixed(2)}</span>
                     </div>
-                  ))}
-                  <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
-                    <span className="font-medium">Our price:</span>
-                    <span className="font-semibold">₹{product.price.toFixed(2)}</span>
                   </div>
+                  <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
                 </div>
-                <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
               </div>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
         
         {/* Quick message options */}
-        <div className="px-4 py-2 flex flex-wrap gap-2">
+        <div className="px-4 py-2 flex flex-wrap gap-2 flex-shrink-0">
           {quickMessages.map((msg, idx) => (
             <Button 
               key={idx} 
@@ -270,7 +282,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
         </div>
         
         {/* Negotiation controls */}
-        <div className="border-t p-4 space-y-4 bg-gray-50">
+        <div className="border-t p-4 space-y-4 bg-gray-50 flex-shrink-0">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Quantity</Label>
