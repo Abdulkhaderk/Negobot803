@@ -49,6 +49,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const [showDealAnimation, setShowDealAnimation] = useState(false);
   const [lastDealSavings, setLastDealSavings] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     setActiveProduct(product);
@@ -96,6 +97,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   };
   
   const handleMakeOffer = () => {
+    // Calculate minimum acceptable price (75% of original = max 25% discount)
+    const minAcceptablePrice = product.price * 0.75;
+    const pricePerUnit = offerPrice / quantity;
+    
     // Track offer
     trackActivity({
       type: 'price_offer',
@@ -108,11 +113,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     const message = `I'd like to offer ₹${offerPrice.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'}.`;
     sendMessage(message);
     
-    // Check if deal will be accepted and prepare animation
-    const negotiationResult = calculateNegotiatedPrice(product, quantity, offerPrice);
-    if (negotiationResult.accepted) {
+    // Check if deal will be accepted with proper 25% limit
+    if (pricePerUnit >= minAcceptablePrice) {
       const originalTotal = product.price * quantity;
-      const savings = originalTotal - negotiationResult.finalPrice;
+      const savings = originalTotal - offerPrice;
       setLastDealSavings(savings);
       
       // Show animation after a delay to match chat response
@@ -125,8 +129,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           productId: product.id,
           productName: product.name,
           offerAmount: offerPrice,
-          finalPrice: negotiationResult.finalPrice,
-          details: `Deal successful: ₹${negotiationResult.finalPrice.toFixed(2)} for ${quantity} units`
+          finalPrice: offerPrice,
+          details: `Deal successful: ₹${offerPrice.toFixed(2)} for ${quantity} units`
         });
       }, 2000);
     }
@@ -177,8 +181,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     setShowDealAnimation(false);
     
     // Add to cart with negotiated price
-    const negotiationResult = calculateNegotiatedPrice(product, quantity, offerPrice);
-    addToCart(product, quantity, negotiationResult.finalPrice);
+    addToCart(product, quantity, offerPrice);
     
     // Track cart addition
     trackActivity({
@@ -197,95 +200,108 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   return (
     <>
       <div className="flex flex-col h-full">
-        {/* Chat header */}
-        <div className="p-4 border-b bg-gray-50 flex items-center space-x-3 flex-shrink-0">
-          <div className="animate-scale-in">
-            <NegoLogo size="sm" />
-          </div>
-          <div>
-            <h3 className="font-medium">NEGO Assistant</h3>
-            <p className="text-xs text-gray-500">AI-powered price negotiation</p>
+        {/* Chat header - Fixed positioning */}
+        <div className="flex-shrink-0 p-4 border-b bg-gray-50">
+          <div className="flex items-center space-x-3">
+            <div className="animate-scale-in">
+              <NegoLogo size="sm" />
+            </div>
+            <div>
+              <h3 className="font-medium text-left">NEGO Assistant</h3>
+              <p className="text-xs text-gray-500 text-left">AI-powered price negotiation</p>
+            </div>
           </div>
         </div>
         
-        {/* Chat messages with proper scroll */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div 
-                key={message.id}
-                className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {message.sender === 'bot' && (
+        {/* Chat messages with proper scroll - Fixed height and overflow */}
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4" ref={scrollAreaRef}>
+              {messages.length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Start a conversation to negotiate the price!</p>
+                </div>
+              )}
+              
+              {messages.map((message) => (
+                <div 
+                  key={message.id}
+                  className={`chat-message-container flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                >
+                  {message.sender === 'bot' && (
+                    <div className="mr-2 flex-shrink-0 mt-1">
+                      <NegoLogo size="sm" />
+                    </div>
+                  )}
+                  
+                  <div 
+                    className={`max-w-[80%] p-3 rounded-lg ${
+                      message.sender === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-secondary text-secondary-foreground'
+                    }`}
+                  >
+                    <p className="whitespace-pre-line text-sm">{message.text}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {showComparisons && (
+                <div className="chat-message-container flex justify-start animate-scale-in">
                   <div className="mr-2 flex-shrink-0 mt-1">
                     <NegoLogo size="sm" />
                   </div>
-                )}
-                
-                <div 
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    message.sender === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-secondary text-secondary-foreground'
-                  }`}
-                >
-                  <p className="whitespace-pre-line">{message.text}</p>
-                </div>
-              </div>
-            ))}
-            
-            {showComparisons && (
-              <div className="chat-message-container flex justify-start animate-scale-in">
-                <div className="mr-2 flex-shrink-0 mt-1">
-                  <NegoLogo size="sm" />
-                </div>
-                <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
-                  <p className="font-medium mb-2">Here's how our price compares:</p>
-                  <div className="space-y-2">
-                    {comparablePrices.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
-                        <span className="flex items-center">
-                          <Globe className="h-3 w-3 mr-1" />
-                          {item.site}:
-                        </span>
-                        <span className="font-semibold">₹{item.price.toFixed(2)}</span>
+                  <div className="max-w-[80%] p-3 rounded-lg bg-secondary text-secondary-foreground">
+                    <p className="font-medium mb-2">Here's how our price compares:</p>
+                    <div className="space-y-2">
+                      {comparablePrices.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white/50 rounded">
+                          <span className="flex items-center">
+                            <Globe className="h-3 w-3 mr-1" />
+                            {item.site}:
+                          </span>
+                          <span className="font-semibold">₹{item.price.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
+                        <span className="font-medium">Our price:</span>
+                        <span className="font-semibold">₹{product.price.toFixed(2)}</span>
                       </div>
-                    ))}
-                    <div className="flex items-center justify-between text-sm p-2 bg-blue-50 rounded mt-2">
-                      <span className="font-medium">Our price:</span>
-                      <span className="font-semibold">₹{product.price.toFixed(2)}</span>
                     </div>
+                    <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
                   </div>
-                  <p className="mt-3 text-xs">You can negotiate a better deal with me!</p>
                 </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-        
-        {/* Quick message options */}
-        <div className="px-4 py-2 flex flex-wrap gap-2 flex-shrink-0">
-          {quickMessages.map((msg, idx) => (
-            <Button 
-              key={idx} 
-              variant="outline" 
-              size="sm" 
-              className="text-xs animate-fade-in"
-              style={{ animationDelay: `${idx * 100}ms` }}
-              onClick={() => sendQuickMessage(msg)}
-            >
-              {msg}
-            </Button>
-          ))}
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
         </div>
         
-        {/* Negotiation controls */}
-        <div className="border-t p-4 space-y-4 bg-gray-50 flex-shrink-0">
+        {/* Quick message options - Fixed positioning */}
+        <div className="flex-shrink-0 px-4 py-2 border-t bg-gray-50">
+          <div className="flex flex-wrap gap-2">
+            {quickMessages.map((msg, idx) => (
+              <Button 
+                key={idx} 
+                variant="outline" 
+                size="sm" 
+                className="text-xs animate-fade-in"
+                style={{ animationDelay: `${idx * 100}ms` }}
+                onClick={() => sendQuickMessage(msg)}
+              >
+                {msg}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Negotiation controls - Fixed positioning */}
+        <div className="flex-shrink-0 border-t p-4 space-y-4 bg-white">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Quantity</Label>
+              <Label className="text-sm font-medium">Quantity</Label>
               <div className="flex items-center space-x-2 mt-2">
                 <Button 
                   variant="outline" 
@@ -295,7 +311,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                 >
                   -
                 </Button>
-                <span className="w-8 text-center">{quantity}</span>
+                <span className="w-8 text-center text-sm">{quantity}</span>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -308,7 +324,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
             </div>
             
             <div>
-              <Label>Your Offer (₹)</Label>
+              <Label className="text-sm font-medium">Your Offer (₹)</Label>
               <div className="flex items-center space-x-2 mt-2">
                 <span className="text-sm">₹</span>
                 <Slider
@@ -319,7 +335,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                   onValueChange={(values) => setOfferPrice(values[0])}
                   className="flex-1"
                 />
-                <span className="min-w-[50px] text-right">{offerPrice.toFixed(2)}</span>
+                <span className="min-w-[60px] text-right text-sm">{offerPrice.toFixed(0)}</span>
               </div>
               
               {wholesaleInfo && (
@@ -347,7 +363,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
               placeholder="Type your message..."
               className="flex-1"
             />
-            <Button size="icon" onClick={handleSendMessage} className="animate-pulse">
+            <Button size="icon" onClick={handleSendMessage}>
               <Send className="h-4 w-4" />
             </Button>
           </div>

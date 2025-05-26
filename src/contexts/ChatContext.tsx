@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product, useProducts } from './ProductContext';
 import { toast } from '@/hooks/use-toast';
@@ -90,8 +89,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       responseText = `📝 **${product.name} Details**\n\n${product.description}\n\n⭐ Customer Rating: ${product.rating}/5 stars\n📦 Available Stock: ${product.inventory} units\n🏷️ Current Price: ₹${product.price.toFixed(2)}\n\nThis is one of our popular items! Would you like to make an offer or learn about bulk discounts?`;
     }
     else if (lowerText.includes('best price') || lowerText.includes('lowest price') || lowerText.includes('minimum price') || lowerText.includes('cheapest') || lowerText.includes('rock bottom')) {
-      const maxDiscount = Math.round(((product.price - product.minPrice) / product.price) * 100);
-      responseText = `🎯 **Best Price Available**\n\nI can offer up to ${maxDiscount}% discount on the ${product.name}!\n\nMy absolute best price: ₹${product.minPrice.toFixed(2)}\nYour savings: ₹${(product.price - product.minPrice).toFixed(2)}\n\nFor bulk orders, I can offer even better deals! How many units are you thinking?`;
+      const maxDiscount = 25; // Fixed 25% max discount
+      const minPrice = product.price * 0.75;
+      responseText = `🎯 **Best Price Available**\n\nI can offer up to ${maxDiscount}% discount on the ${product.name}!\n\nMy absolute best price: ₹${minPrice.toFixed(2)}\nYour savings: ₹${(product.price - minPrice).toFixed(2)}\n\nFor bulk orders, I can offer even better deals! How many units are you thinking?`;
     }
     else if (lowerText.includes('wholesale') || lowerText.includes('bulk') || lowerText.includes('discount') || lowerText.includes('quantity') || lowerText.includes('volume')) {
       responseText = "💼 **Volume Discount Options**\n\n";
@@ -109,7 +109,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       responseText = `📊 **Market Price Comparison**\n\nI've checked current market prices:\n\n🛒 Amazon: ₹${(product.price * 1.15).toFixed(2)}\n🛍️ Flipkart: ₹${(product.price * 1.08).toFixed(2)}\n🏪 Local stores: ₹${(product.price * 1.22).toFixed(2)}\n💫 Our price: ₹${product.price.toFixed(2)}\n\nPlus, I can negotiate even better prices for you! What's your target price?`;
     }
     else if (lowerText.match(/₹\s*\d+/) || lowerText.match(/\d+\s*rupees/) || (lowerText.includes('offer') && lowerText.match(/\d+/)) || lowerText.includes('pay')) {
-      // Handle price offers
+      // Handle price offers with strict 25% limit
       const priceMatch = lowerText.match(/₹\s*(\d+(?:\.\d+)?)/);
       const rupeesMatch = lowerText.match(/(\d+(?:\.\d+)?)\s*rupees/);
       const offerMatch = lowerText.match(/(\d+(?:\.\d+)?)/);
@@ -127,21 +127,15 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const quantityMatch = lowerText.match(/(\d+)\s*(?:units?|items?|pieces?|qty)/);
         const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
         
-        const negotiationResult = calculateNegotiatedPrice(product, quantity, parsedOffer);
+        // Apply strict 25% discount limit
+        const minAcceptablePrice = product.price * 0.75;
+        const pricePerUnit = parsedOffer / quantity;
         
-        if (negotiationResult.accepted) {
-          responseText = `🎉 **DEAL ACCEPTED!** 🎉\n\n${negotiationResult.message.replace(/\$/g, '₹')}\n\n✅ Adding ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart\n💰 Final price: ₹${negotiationResult.finalPrice.toFixed(2)}\n🎯 You saved: ₹${((product.price * quantity) - negotiationResult.finalPrice).toFixed(2)}\n\nThank you for choosing us! 🚀`;
-          
-          // Add to cart and show success
-          setTimeout(() => {
-            addToCart(product, quantity, negotiationResult.finalPrice);
-            toast({
-              title: "🎉 Deal Successful!",
-              description: `${quantity} × ${product.name} added at negotiated price!`,
-            });
-          }, 1000);
+        if (pricePerUnit >= minAcceptablePrice) {
+          const savings = (product.price * quantity) - parsedOffer;
+          responseText = `🎉 **DEAL ACCEPTED!** 🎉\n\nExcellent offer! I accept ₹${parsedOffer.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${product.name}.\n\n✅ Adding ${quantity} ${quantity > 1 ? 'units' : 'unit'} to your cart\n💰 Final price: ₹${parsedOffer.toFixed(2)}\n🎯 You saved: ₹${savings.toFixed(2)}\n\nThank you for choosing us! 🚀`;
         } else {
-          responseText = `🤔 **Let's negotiate further...**\n\n${negotiationResult.message.replace(/\$/g, '₹')}\n\n💡 How about ₹${(negotiationResult.finalPrice / quantity).toFixed(2)} per unit? That's still a great ${Math.round(((product.price * quantity - negotiationResult.finalPrice) / (product.price * quantity)) * 100)}% discount!`;
+          responseText = `🤔 **That's below our minimum price**\n\nI understand you're looking for a great deal, but ₹${pricePerUnit.toFixed(2)} per unit is below our minimum acceptable price.\n\n💡 Our best offer: ₹${minAcceptablePrice.toFixed(2)} per unit\n📊 That's still a 25% discount from the original price!\n\nWhat do you think about this offer?`;
         }
       } else {
         responseText = "I'd love to work with your budget! Could you please tell me your target price more clearly? For example: '₹5000' or 'I can pay 5000 rupees'";
@@ -158,12 +152,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     else if (lowerText.includes('help') || lowerText.includes('how') || lowerText.includes('what can you do')) {
       responseText = `🤖 **Here's how I can help you:**\n\n💬 **Chat with me** - Ask anything about products\n💰 **Negotiate prices** - Tell me your budget\n📊 **Compare prices** - See market rates\n🏷️ **Bulk discounts** - Get wholesale pricing\n🛒 **Smart buying** - Best deals for you\n\n**Try saying:**\n• "What's your best price?"\n• "I offer ₹X for this"\n• "Tell me about bulk discounts"\n\nWhat would you like to explore? 🚀`;
-    }
-    else if (lowerText.includes('expensive') || lowerText.includes('costly') || lowerText.includes('too much') || lowerText.includes('high price')) {
-      responseText = `I understand your concern about the price! 💭\n\nLet's work together to find a price that works for you. The great news is I have flexibility!\n\n🎯 What's your ideal budget for this item?\n💡 I can also show you similar products at different price points\n📦 Bulk purchases can significantly reduce the per-unit cost\n\nWhat would work best for you?`;
-    }
-    else if (lowerText.includes('quality') || lowerText.includes('review') || lowerText.includes('rating') || lowerText.includes('good')) {
-      responseText = `⭐ **Quality Assurance**\n\nThis ${product.name} has earned a ${product.rating}/5 star rating from our customers!\n\n✅ High-quality materials\n✅ Rigorous testing standards\n✅ Customer satisfaction guarantee\n✅ Full warranty coverage\n\nOur customers love this product! Plus, at the right price, it's an even better value. What's your target budget? 💫`;
     }
     else {
       // Enhanced fallback responses for better engagement

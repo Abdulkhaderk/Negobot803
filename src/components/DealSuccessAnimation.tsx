@@ -60,7 +60,7 @@ const DealSuccessAnimation: React.FC<DealSuccessAnimationProps> = ({
           <p className="text-gray-600 mb-4">
             You've successfully negotiated a great price for
           </p>
-          <p className="font-semibold text-lg text-primary">{productName}</p>
+          <p className="font-semibold text-lg text-blue-600">{productName}</p>
         </div>
 
         {/* Stage 3: Savings & Cart */}
@@ -71,9 +71,9 @@ const DealSuccessAnimation: React.FC<DealSuccessAnimationProps> = ({
             </p>
           </div>
           
-          <div className="flex items-center justify-center text-primary">
+          <div className="flex items-center justify-center text-blue-600">
             <ShoppingCart className="h-5 w-5 mr-2" />
-            <span className="text-sm">Added to cart successfully</span>
+            <span className="text-sm font-medium">Added to cart successfully</span>
           </div>
         </div>
 
