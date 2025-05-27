@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { Product, useProducts } from '@/contexts/ProductContext';
 import { useCustomerTracking } from '@/contexts/CustomerTrackingContext';
@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, DollarSign, Loader2 } from 'lucide-react';
+import { Send, DollarSign } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import NegoLogo from './NegoLogo';
 
@@ -23,12 +22,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [offerPrice, setOfferPrice] = useState(Math.round(product.price * 0.9));
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
+  // Scroll to bottom function with debouncing
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
   useEffect(() => {
     setActiveProduct(product);
-    
     trackActivity({
       type: 'product_view',
       productId: product.id,
@@ -39,18 +44,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     return () => {
       setActiveProduct(null);
     };
-  }, [product, setActiveProduct, trackActivity]);
+  }, [product.id]); // Only depend on product.id to prevent re-renders
   
+  // Scroll to bottom when messages change, but with a small delay to prevent vibration
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isTyping]);
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeoutId);
+  }, [messages.length, scrollToBottom]);
   
-  const handleSendMessage = () => {
+  const handleSendMessage = useCallback(() => {
     if (inputMessage.trim()) {
-      setIsTyping(true);
-      
       trackActivity({
         type: 'negotiation_start',
         productId: product.id,
@@ -60,24 +63,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       
       sendMessage(inputMessage);
       setInputMessage('');
-      
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 1500);
     }
-  };
+  }, [inputMessage, product.id, product.name, trackActivity, sendMessage]);
   
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
   
-  const handleMakeOffer = () => {
-    const minAcceptablePrice = product.price * 0.75;
+  const handleMakeOffer = useCallback(() => {
+    const minAcceptablePrice = product.price * 0.75; // 25% discount max
     const totalOfferPrice = offerPrice * quantity;
-    const totalMinPrice = minAcceptablePrice * quantity;
     
     trackActivity({
       type: 'price_offer',
@@ -87,17 +85,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
       details: `Offered ₹${offerPrice.toFixed(2)} for ${quantity} units`
     });
     
-    setIsTyping(true);
     const message = `I'd like to offer ₹${offerPrice.toFixed(2)} per unit for ${quantity} ${quantity > 1 ? 'units' : 'unit'}. Total: ₹${totalOfferPrice.toFixed(2)}`;
     sendMessage(message);
     
-    setTimeout(() => {
-      setIsTyping(false);
+    // Check if offer is acceptable
+    if (offerPrice >= minAcceptablePrice) {
+      const originalTotal = product.price * quantity;
+      const savings = originalTotal - totalOfferPrice;
       
-      if (offerPrice >= minAcceptablePrice) {
-        const originalTotal = product.price * quantity;
-        const savings = originalTotal - totalOfferPrice;
-        
+      // Add to cart and show success toast
+      setTimeout(() => {
         addToCart(product, quantity, offerPrice);
         
         trackActivity({
@@ -113,11 +110,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
           title: "🎉 Deal Successful!",
           description: `Added ${quantity} × ${product.name} to cart. You saved ₹${savings.toFixed(2)}!`,
         });
-      }
-    }, 2000);
-  };
+      }, 2000);
+    }
+  }, [product, quantity, offerPrice, trackActivity, sendMessage, addToCart]);
   
-  const minPrice = Math.ceil(product.price * 0.75);
+  // Price slider range: 0 to actual product price
+  const minPrice = 0;
   const maxPrice = Math.ceil(product.price);
   
   const quickMessages = [
@@ -127,9 +125,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     "I'll take it at the listed price"
   ];
 
-  const sendQuickMessage = (message: string) => {
-    setIsTyping(true);
-    
+  const sendQuickMessage = useCallback((message: string) => {
     trackActivity({
       type: 'negotiation_start',
       productId: product.id,
@@ -138,11 +134,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
     });
     
     sendMessage(message);
-    
-    setTimeout(() => {
-      setIsTyping(false);
-    }, 1500);
-  };
+  }, [product.id, product.name, trackActivity, sendMessage]);
 
   return (
     <div className="flex flex-col h-full max-h-[600px]">
@@ -157,51 +149,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
         </div>
       </div>
       
-      {/* Messages Area with proper scrolling */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full w-full">
-          <div className="p-3 space-y-3 min-h-full flex flex-col">
-            <div className="flex-1">
-              {messages.map((message) => (
-                <div 
-                  key={message.id}
-                  className={`flex mb-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {message.sender === 'bot' && (
-                    <div className="mr-2 flex-shrink-0 self-start">
-                      <NegoLogo size="sm" />
-                    </div>
-                  )}
-                  
-                  <div 
-                    className={`max-w-[75%] p-3 rounded-lg text-sm leading-relaxed ${
-                      message.sender === 'user' 
-                        ? 'bg-blue-500 text-white rounded-br-sm' 
-                        : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-                    }`}
-                  >
-                    <p className="whitespace-pre-line">{message.text}</p>
-                  </div>
-                </div>
-              ))}
-              
-              {isTyping && (
-                <div className="flex justify-start mb-3">
-                  <div className="mr-2 flex-shrink-0">
-                    <NegoLogo size="sm" />
-                  </div>
-                  <div className="bg-gray-100 text-gray-800 p-3 rounded-lg rounded-bl-sm">
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span className="text-xs">NEGO is typing...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+      {/* Messages Area with stable scrolling */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-3 space-y-3"
+        style={{ minHeight: '200px', maxHeight: '300px' }}
+      >
+        {messages.map((message) => (
+          <div 
+            key={message.id}
+            className={`flex mb-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            {message.sender === 'bot' && (
+              <div className="mr-2 flex-shrink-0 self-start">
+                <NegoLogo size="sm" />
+              </div>
+            )}
+            
+            <div 
+              className={`max-w-[75%] p-3 rounded-lg text-sm leading-relaxed ${
+                message.sender === 'user' 
+                  ? 'bg-blue-500 text-white rounded-br-sm' 
+                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+              }`}
+            >
+              <p className="whitespace-pre-line">{message.text}</p>
             </div>
-            <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
       
       {/* Quick Actions */}
@@ -255,11 +231,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                 value={[offerPrice]}
                 min={minPrice}
                 max={maxPrice}
-                step={50}
+                step={100}
                 onValueChange={(values) => setOfferPrice(values[0])}
                 className="flex-1"
               />
-              <span className="min-w-[50px] text-right text-xs font-medium">
+              <span className="min-w-[60px] text-right text-xs font-medium">
                 ₹{offerPrice.toFixed(0)}
               </span>
             </div>
