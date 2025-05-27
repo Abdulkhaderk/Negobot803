@@ -187,7 +187,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
                 >
                   {message.sender === 'bot' && (
                     <div className="mr-2 flex-shrink-0">
-                      <NegoLogo size="xs" />
+                      <NegoLogo size="sm" />
                     </div>
                   )}
                   
@@ -206,7 +206,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ product }) => {
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="mr-2 flex-shrink-0">
-                    <NegoLogo size="xs" />
+                    <NegoLogo size="sm" />
                   </div>
                   <div className="bg-gray-100 text-gray-800 p-2 rounded-lg">
                     <div className="flex items-center space-x-2">
