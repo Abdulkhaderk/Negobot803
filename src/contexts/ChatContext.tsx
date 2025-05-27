@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product, useProducts } from './ProductContext';
-import { toast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
@@ -27,16 +26,26 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { calculateNegotiatedPrice, addToCart } = useProducts();
 
   const sendBotGreeting = (product: Product) => {
-    const greeting = `👋 Hello! I'm your NEGO assistant for "${product.name}". 
+    const greetings = [
+      `👋 Hello! I'm your NEGO assistant for the "${product.name}". Let's find you the perfect deal!`,
+      `Hi there! 🎯 I'm here to help you negotiate the best price for "${product.name}".`,
+      `Welcome! 💼 Ready to get a great deal on "${product.name}"? Let's chat!`
+    ];
+    
+    const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    
+    const followUp = `
 
-Current price: ₹${product.price.toFixed(2)}
+💰 Current price: ₹${product.price.toFixed(2)}
+⭐ Rating: ${product.rating}/5 stars
+📦 Stock: ${product.inventory} units available
 
-I can help you get the best deal possible! What would you like to know about this product?`;
+I'm here to help you get the best possible price. What would you like to know about this product?`;
     
     const newMessage: Message = {
       id: Date.now().toString(),
       sender: 'bot',
-      text: greeting,
+      text: greeting + followUp,
       timestamp: new Date()
     };
     
@@ -75,42 +84,79 @@ I can help you get the best deal possible! What would you like to know about thi
     const lowerText = text.toLowerCase();
     let responseText = '';
     
-    if (lowerText.includes('hello') || lowerText.includes('hi') || lowerText.includes('hey')) {
-      responseText = `Hello! Great to see you're interested in the ${product.name}. What would you like to know about it?`;
+    // Greeting responses
+    if (lowerText.includes('hello') || lowerText.includes('hi') || lowerText.includes('hey') || lowerText.includes('good morning') || lowerText.includes('good evening')) {
+      const greetingResponses = [
+        `Hello there! 😊 Great to see you're interested in the ${product.name}. How can I assist you today?`,
+        `Hi! 👋 Perfect timing - I was just thinking about how to get you the best deal on this ${product.name}!`,
+        `Hey! 🎉 Welcome back! Ready to negotiate an amazing price for the ${product.name}?`
+      ];
+      responseText = greetingResponses[Math.floor(Math.random() * greetingResponses.length)];
     }
-    else if (lowerText.includes('tell me more') || lowerText.includes('more information') || lowerText.includes('details') || lowerText.includes('about') || lowerText.includes('features')) {
-      responseText = `📝 ${product.name}
+    // Product information requests
+    else if (lowerText.includes('tell me more') || lowerText.includes('more information') || lowerText.includes('details') || lowerText.includes('about') || lowerText.includes('features') || lowerText.includes('specifications')) {
+      responseText = `📝 Here's everything about the ${product.name}:
 
 ${product.description}
 
-⭐ Rating: ${product.rating}/5 stars
-📦 In Stock: ${product.inventory} units
-💰 Current Price: ₹${product.price.toFixed(2)}
+🔍 **Key Details:**
+⭐ Customer Rating: ${product.rating}/5 stars
+📦 Available Stock: ${product.inventory} units
+💰 List Price: ₹${product.price.toFixed(2)}
+🏷️ Category: ${product.category}
 
-This is a popular choice! Ready to make a deal?`;
-    }
-    else if (lowerText.includes('best price') || lowerText.includes('lowest price') || lowerText.includes('minimum price') || lowerText.includes('discount')) {
-      responseText = `🎯 I can definitely work with you on the price! 
+This product has been quite popular with our customers! Many have found great value in it. 
 
-For the ${product.name}, I have some flexibility to negotiate. What price range were you thinking?`;
+🎯 **Special for you:** I can work within a reasonable range to get you a better price. What's your target budget?`;
     }
-    else if (lowerText.includes('wholesale') || lowerText.includes('bulk') || lowerText.includes('quantity')) {
-      responseText = "💼 Bulk Order Benefits:\n\n";
+    // Price inquiries
+    else if (lowerText.includes('best price') || lowerText.includes('lowest price') || lowerText.includes('minimum price') || lowerText.includes('discount') || lowerText.includes('cheaper') || lowerText.includes('reduce')) {
+      const discountResponses = [
+        `🎯 I love a good negotiation! For the ${product.name}, I have some flexibility to work with you.`,
+        `💡 Great question! I can definitely help you get a better deal on this ${product.name}.`,
+        `🤝 Absolutely! I'm here to find you the best possible price for the ${product.name}.`
+      ];
+      
+      const baseResponse = discountResponses[Math.floor(Math.random() * discountResponses.length)];
+      
+      responseText = `${baseResponse}
+
+💭 **Here's what I'm thinking:**
+• The listed price is ₹${product.price.toFixed(2)}
+• I can negotiate within a reasonable range
+• The final price depends on quantity and your offer
+
+🎪 **Pro tip:** Bulk orders often get better rates! How many units are you considering?
+
+What price range did you have in mind?`;
+    }
+    // Wholesale/bulk inquiries
+    else if (lowerText.includes('wholesale') || lowerText.includes('bulk') || lowerText.includes('quantity') || lowerText.includes('multiple') || lowerText.includes('units')) {
+      responseText = "💼 **Bulk Pricing - Smart Choice!**\n\n";
       if (product.wholesalePricing && product.wholesalePricing.length > 0) {
+        responseText += "🎉 Great news! This product has special bulk pricing:\n\n";
         product.wholesalePricing.forEach(tier => {
           const discountedPrice = product.price * (1 - tier.discountPercentage / 100);
-          responseText += `• ${tier.quantity}+ units: ${tier.discountPercentage}% off (₹${discountedPrice.toFixed(2)} each)\n`;
+          responseText += `• **${tier.quantity}+ units:** ${tier.discountPercentage}% off = ₹${discountedPrice.toFixed(2)} each\n`;
         });
-        responseText += "\nHow many units are you considering?";
+        responseText += "\n💡 **Even better news:** I might be able to negotiate additional savings on top of these rates!\n\nHow many units are you planning to purchase?";
       } else {
-        responseText += "While this product doesn't have specific bulk pricing, I can still negotiate better rates for larger quantities!";
+        responseText += "While this product doesn't have official bulk pricing tiers, I can definitely work with you on better rates for larger quantities!\n\n🎯 **My approach:**\n• 2-5 units: Small discount possible\n• 6-10 units: Better negotiation room\n• 10+ units: Significant savings potential\n\nHow many units were you thinking?";
       }
     }
-    else if (lowerText.includes('listed price') || lowerText.includes('take it at') || lowerText.includes('full price')) {
-      responseText = `Perfect! The ${product.name} at ₹${product.price.toFixed(2)} is a great choice. 
+    // Full price acceptance
+    else if (lowerText.includes('listed price') || lowerText.includes('take it at') || lowerText.includes('full price') || lowerText.includes('agree') || lowerText.includes('accept')) {
+      responseText = `🎉 Fantastic! The ${product.name} at ₹${product.price.toFixed(2)} is definitely a solid choice.
 
-Would you like me to add it to your cart, or shall we see if I can get you an even better deal first? 😊`;
+But wait! 🤔 Before we finalize this...
+
+As your negotiation assistant, I feel I'd be doing you a disservice if I didn't at least try to save you some money! Even a small discount can add up.
+
+🎯 **Quick question:** Would you be open to a slightly lower price if I could arrange it? Sometimes I can get approval for special pricing, especially for valued customers like yourself!
+
+What do you say - shall we see what's possible? 😊`;
     }
+    // Price offers
     else if (lowerText.match(/₹\s*\d+/) || lowerText.match(/\d+\s*rupees/) || (lowerText.includes('offer') && lowerText.match(/\d+/))) {
       const priceMatch = lowerText.match(/₹\s*(\d+(?:\.\d+)?)/);
       const rupeesMatch = lowerText.match(/(\d+(?:\.\d+)?)\s*rupees/);
@@ -129,49 +175,114 @@ Would you like me to add it to your cart, or shall we see if I can get you an ev
         const quantityMatch = lowerText.match(/(\d+)\s*(?:units?|items?|pieces?)/);
         const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
         
-        const minAcceptablePrice = product.price * 0.75;
+        const minAcceptablePrice = product.price * 0.75; // 25% discount max
         const pricePerUnit = parsedOffer / quantity;
         
         if (pricePerUnit >= minAcceptablePrice) {
           const savings = (product.price * quantity) - parsedOffer;
           const discountPercent = Math.round(((product.price - pricePerUnit) / product.price) * 100);
-          responseText = `🎉 Excellent offer! 
+          
+          const successResponses = [
+            `🎉 **Excellent offer!** That's a deal I can definitely work with!`,
+            `✅ **Outstanding!** Your offer is within my approval range!`,
+            `🤝 **Perfect!** I'm happy to accept that offer!`
+          ];
+          
+          const baseResponse = successResponses[Math.floor(Math.random() * successResponses.length)];
+          
+          responseText = `${baseResponse}
 
-I can accept ₹${parsedOffer.toFixed(2)} for ${quantity} ${quantity > 1 ? 'units' : 'unit'} of ${product.name}.
+📋 **Deal Summary:**
+• Product: ${product.name}
+• Quantity: ${quantity} ${quantity > 1 ? 'units' : 'unit'}
+• Your Price: ₹${parsedOffer.toFixed(2)}
+• List Price: ₹${(product.price * quantity).toFixed(2)}
 
-✅ Your savings: ₹${savings.toFixed(2)} (${discountPercent}% off)
-💰 Final price: ₹${parsedOffer.toFixed(2)}
+💰 **Your Savings: ₹${savings.toFixed(2)} (${discountPercent}% off!)**
 
-Should I add this to your cart with this negotiated price?`;
+🎁 This is a fantastic deal! I'll process this for you right away and add it to your cart at this negotiated price.
+
+Ready to proceed? 🛒`;
         } else {
           const counterOffer = minAcceptablePrice * quantity;
-          responseText = `🤔 That's a bit too low for us.
+          const maxDiscount = Math.round(((product.price - minAcceptablePrice) / product.price) * 100);
+          
+          const counterResponses = [
+            `🤔 I appreciate your offer, but that's pushing my limits a bit too far.`,
+            `💭 I understand you're looking for a great deal, but I need to stay within reasonable bounds.`,
+            `🎯 I'd love to help, but that price point is challenging for me to approve.`
+          ];
+          
+          const baseResponse = counterResponses[Math.floor(Math.random() * counterResponses.length)];
+          
+          responseText = `${baseResponse}
 
-💡 How about ₹${minAcceptablePrice.toFixed(2)} per unit (₹${counterOffer.toFixed(2)} total)?
-📊 That's still a great ${Math.round(((product.price - minAcceptablePrice) / product.price) * 100)}% discount!
+💡 **Here's what I can do:**
+• Counter-offer: ₹${minAcceptablePrice.toFixed(2)} per unit
+• Total for ${quantity} ${quantity > 1 ? 'units' : 'unit'}: ₹${counterOffer.toFixed(2)}
+• That's still a solid **${maxDiscount}% discount!**
 
-What do you think?`;
+🤝 This represents the best I can do while ensuring quality and service. It's still a significant saving from the list price of ₹${(product.price * quantity).toFixed(2)}.
+
+What do you think about this counter-offer?`;
         }
       }
     }
-    else if (lowerText.includes('add to cart') || lowerText.includes('buy') || lowerText.includes('purchase')) {
-      responseText = `🛒 I can add the ${product.name} to your cart right away!
+    // Purchase intent
+    else if (lowerText.includes('add to cart') || lowerText.includes('buy') || lowerText.includes('purchase') || lowerText.includes('order')) {
+      responseText = `🛒 I'd be happy to help you add the ${product.name} to your cart!
 
-Current price: ₹${product.price.toFixed(2)}
+💰 **Current pricing:**
+• List price: ₹${product.price.toFixed(2)}
 
-But wait - let me see if I can get you a better deal first! What's your budget for this item?`;
+But hold on! 🛑 As your personal negotiation assistant, I'd be remiss if I didn't try to save you some money first!
+
+🎯 **Quick opportunity:** Let me see what special pricing I can arrange for you. Sometimes I can get approval for exclusive discounts, especially for new customers!
+
+What's your ideal budget for this item? Even if we can save you just a few hundred rupees, that's money back in your pocket! 💪`;
     }
-    else if (lowerText.includes('thank') || lowerText.includes('thanks')) {
-      responseText = "You're very welcome! 😊 Is there anything else about this product I can help you with?";
+    // Thank you responses
+    else if (lowerText.includes('thank') || lowerText.includes('thanks') || lowerText.includes('appreciate')) {
+      const thankResponses = [
+        `You're very welcome! 😊 I'm here to ensure you get the best possible deal!`,
+        `My pleasure! 🎉 That's what I'm here for - getting you amazing prices!`,
+        `Absolutely my pleasure! 🤝 I love helping customers save money!`
+      ];
+      responseText = thankResponses[Math.floor(Math.random() * thankResponses.length)] + " Is there anything else about this product I can help you with?";
     }
+    // Budget inquiries
+    else if (lowerText.includes('budget') || lowerText.includes('afford') || lowerText.includes('spend') || lowerText.includes('range')) {
+      responseText = `💰 **Budget Discussion - Let's Find Your Sweet Spot!**
+
+I completely understand wanting to stay within budget! That's exactly why I'm here.
+
+🎯 **For the ${product.name}:**
+• List price: ₹${product.price.toFixed(2)}
+• I have some flexibility to negotiate
+
+💡 **Here's my approach:** Instead of you committing to a specific budget first, why don't I share what kind of pricing flexibility I might have?
+
+I could potentially work within a reasonable range from the list price. Would you be interested in hearing what kind of deal I might be able to arrange?`;
+    }
+    // General fallback with personality
     else {
       const fallbackResponses = [
-        `Great question! For the ${product.name} at ₹${product.price.toFixed(2)}, I'm here to help you get the best possible deal. What's your budget?`,
-        `I'd be happy to help with that! This ${product.name} is popular for good reasons. Are you ready to negotiate a price?`,
-        `Absolutely! Since you're interested in the ${product.name}, what price point would work best for you?`
+        `That's a great point! For the ${product.name} at ₹${product.price.toFixed(2)}, I'm confident we can find a price that works for both of us.`,
+        `I appreciate you bringing that up! This ${product.name} has been getting excellent feedback, and I'd love to help you get it at a fantastic price.`,
+        `Interesting perspective! Since you're considering the ${product.name}, let me see what kind of special arrangement I can make for you.`,
+        `Good question! The ${product.name} is definitely worth discussing - I have some flexibility on pricing that might interest you.`
       ];
       
-      responseText = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      const baseResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+      
+      responseText = `${baseResponse}
+
+🤔 Let me ask you this: What's the most important factor for you in this purchase?
+• Getting the lowest possible price?
+• Ensuring the best value for money?
+• Quick delivery and service?
+
+Once I understand your priorities, I can tailor my negotiation approach to focus on what matters most to you! 🎯`;
     }
     
     const botMessage: Message = {
@@ -185,7 +296,6 @@ But wait - let me see if I can get you a better deal first! What's your budget f
   };
 
   const negotiatePrice = (product: Product, quantity: number, offeredPrice: number) => {
-    // This function is kept for compatibility but main logic is in ChatInterface
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: 'user', 
